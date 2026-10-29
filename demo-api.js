@@ -129,8 +129,8 @@
   function goMemoryOnly() {
     if (memoryOnly) return;
     memoryOnly = true;
-    // Avisa uma vez: a gravação foi aceita, mas some ao fechar a aba.
-    setTimeout(() => toast('O navegador bloqueou o armazenamento: suas mudanças valem só enquanto esta aba estiver aberta.'), 0);
+    // A gravação foi aceita, mas some ao fechar a aba: a faixa passa a dizer isso o tempo todo.
+    setTimeout(updateBarNote, 0);
   }
   function readStorage() {
     try {
@@ -155,27 +155,18 @@
       if (stored) memory = stored;
     }
     if (!stored) stored = memory;
-    if (fresh(stored)) return stored;
-    // Renova as datas dos exemplos, mas a revisão só sobe (abas abertas nunca veem a revisão voltar)
-    // e o que o visitante criou, concluiu ou excluiu continua lá.
-    const seeded = {revision: (stored && Number.isSafeInteger(stored.revision) ? stored.revision : 0) + 1, seeded_for: today(), data: renewExamples(stored && stored.data)};
+    // A demo nunca troca sozinha os dados do visitante. Se os exemplos ficaram antigos,
+    // a faixa avisa e o visitante decide se quer recomeçar.
+    if (stored && Number.isSafeInteger(stored.revision) && stored.data) {
+      const stale = !fresh(stored);
+      if (stale !== staleExamples) { staleExamples = stale; setTimeout(updateBarNote, 0); }
+      return stored;
+    }
+    const seeded = {revision: 1, seeded_for: today(), data: seedState()};
     saveStore(seeded);
     return seeded;
   }
-  function renewExamples(previous) {
-    const examples = seedState();
-    if (!previous) return examples;
-    const mine = id => typeof id === 'string' && !id.startsWith('demo-');
-    try {
-      return root.LuanLocalData.validateState({
-        tasks: examples.tasks.concat((previous.tasks || []).filter(t => mine(t.id))),
-        done: (previous.done || []).filter(mine),
-        deleted: (previous.deleted || []).filter(mine),
-      });
-    } catch (err) {
-      return examples;
-    }
-  }
+  let staleExamples = false;
   // Ler, comparar e gravar como uma operação só, também entre abas, quando o navegador suporta.
   // Sem Web Locks (navegadores antigos), a demo segue funcionando sem essa garantia entre abas.
   const exclusive = fn => (navigator.locks && navigator.locks.request) ? navigator.locks.request(STORE_KEY, fn) : fn();
@@ -287,22 +278,36 @@
     }
   }, true);
 
-  // Frases da interface real que não valem na demo: aqui não há sincronização entre
-  // dispositivos nem banco D1, só o armazenamento deste navegador.
+  // Frases da interface real que não valem na demo: aqui não há conta, sincronização entre
+  // dispositivos nem banco D1. Só os elementos de status abaixo são ajustados; o conteúdo
+  // criado pelo visitante nunca é reescrito.
   const DEMO_TEXT = [
     ['usam o mesmo Core em todos os dispositivos.', 'ficam salvos só neste navegador, nesta demonstração.'],
     ['Tarefas e conclusões já são sincronizadas entre dispositivos quando o painel está online.', 'Na demonstração, tarefas e conclusões ficam salvas só neste navegador.'],
     ['Dados sincronizados entre dispositivos.', 'Dados salvos neste navegador (demonstração).'],
+    ['A conta autenticada determina seus dados e o acesso ao sistema.', 'Na demonstração não há conta: o perfil é fictício.'],
     ['D1: disponível', 'D1 simulado na demonstração'],
     ['D1: indisponível', 'D1 simulado na demonstração'],
   ];
-  function honestText(scope) {
-    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      let text = node.nodeValue;
+  const STATUS_ELEMENTS = '#sync-status, #core-health-status, #data-description, .setting-intro p, #configuracoes p';
+  function honestText() {
+    document.querySelectorAll(STATUS_ELEMENTS).forEach((el) => {
+      // Só parágrafos de texto simples da própria interface; listas com títulos de tarefas ficam de fora.
+      if (el.childElementCount || el.closest('.import-conflict, .calendar-issue, [data-demo-note]')) return;
+      let text = el.textContent;
       for (const [from, to] of DEMO_TEXT) if (text.includes(from)) text = text.split(from).join(to);
-      if (text !== node.nodeValue) node.nodeValue = text;
-    }
+      if (text !== el.textContent) el.textContent = text;
+    });
+  }
+  // Avisos permanentes na faixa: armazenamento só em memória e exemplos com datas antigas.
+  function updateBarNote() {
+    const note = document.querySelector('[data-demo-note]');
+    if (!note) return;
+    const parts = [];
+    if (memoryOnly) parts.push('Seu navegador bloqueou o armazenamento: as mudanças valem só enquanto esta aba estiver aberta.');
+    if (staleExamples) parts.push('Os exemplos são de alguns dias atrás; use "Recomeçar a demo" para atualizar as datas.');
+    note.textContent = parts.join(' ');
+    note.hidden = !parts.length;
   }
   function markTitle() {
     if (!document.title.includes('demonstração')) document.title = document.title + ' (demonstração)';
@@ -310,9 +315,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     neutralize(document);
-    honestText(document.body);
+    honestText();
     // As substituições não recriam os textos procurados, então o observador não entra em ciclo.
-    new MutationObserver(() => { neutralize(document.body); honestText(document.body); markTitle(); })
+    new MutationObserver(() => { neutralize(document.body); honestText(); markTitle(); })
       .observe(document.body, {childList: true, subtree: true, characterData: true});
     new MutationObserver(markTitle).observe(document.head, {childList: true, subtree: true, characterData: true});
     markTitle();
@@ -337,11 +342,13 @@
     bar.setAttribute('role', 'region');
     bar.setAttribute('aria-label', 'Aviso de demonstração');
     bar.innerHTML = '<span>Demonstração do LUAN OS com dados fictícios. A Marina não existe e o que você mudar fica só neste navegador.</span>'
+      + '<span data-demo-note hidden></span>'
       + '<button type="button" data-demo-reset>Recomeçar a demo</button>'
       + '<a href="' + PORTFOLIO + '">Voltar ao portfólio</a>';
     // A interface rola até a seção "Hoje" ao abrir; a faixa fica no topo dela para ser vista logo.
     const host = document.getElementById('hoje');
     if (host) { bar.classList.add('demo-bar--inline'); host.prepend(bar); } else document.body.prepend(bar);
+    updateBarNote();
     bar.querySelector('[data-demo-reset]').addEventListener('click', async () => {
       await resetDemo();
       if (!memoryOnly) { location.reload(); return; }

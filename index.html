@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#f5f6fa">
-  <meta name="description" content="Sua agenda, prioridades, atualizações e oportunidades em um painel pessoal.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1117" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="LUAN OS: agenda, tarefas, atualizações e módulos em um único sistema pessoal.">
   <title>LUAN OS: demonstração</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%234f46e5%27/%3E%3Cpath d=%27M17 18h12a14 14 0 0 1 0 28H17z%27 fill=%27none%27 stroke=%27white%27 stroke-width=%275%27/%3E%3Cpath d=%27M39 20h8M39 32h8M39 44h8%27 stroke=%27white%27 stroke-width=%274%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M13.12 3.32A13 13 0 1 0 28.68 18.88A11 11 0 0 1 13.12 3.32Z%27 fill=%27%232f45c8%27/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./style.css">
   <script src="./validators.js" defer></script>
   <script src="./demo-api.js" defer></script>
@@ -15,113 +17,306 @@
   <script src="./planning.js" defer></script>
   <script src="./panel-service.js" defer></script>
   <script src="./profile.js" defer></script>
+  <script src="./modules.js" defer></script>
+  <script src="./automations.js" defer></script>
+  <script src="./workspace.js" defer></script>
+  <script src="./workspace-service.js" defer></script>
+  <script src="./calendar-sync-client.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#agenda">Ir para a agenda</a>
+  <a id="skip-link" class="skip-link" href="#visao">Ir para o conteúdo</a>
   <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="#visao" aria-label="Dashboard Diário, início"><span class="brand-mark" aria-hidden="true">D<span class="mark-dot">.</span></span><div><strong data-product-name>Dashboard Diário</strong><small>Seu espaço pessoal</small></div></a>
-      <div class="side-label">SEU PAINEL</div>
-      <a class="nav-item active" href="#visao" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Visão geral</a>
-      <a class="nav-item" href="#agenda"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg> Agenda</a>
-      <a class="nav-item" href="#prioridades"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4m0 0c5-4 9 4 14 0v10c-5 4-9-4-14 0"/></svg> Prioridades</a>
-      <a class="nav-item" href="#atualizacoes"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg> Atualizações</a>
-      <a class="nav-item" href="#vagas"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3 12c6 4 12 4 18 0M12 12v4"/></svg> Vagas</a>
-      <div class="sidebar-profile"><span class="profile-avatar" data-profile-initials aria-label="Seu perfil"></span><div><strong data-profile-name>Seu perfil</strong><small data-profile-label>Perfil pessoal</small></div></div><div class="side-bottom">Agenda, foco e oportunidades<br><small>Um dia de cada vez.</small></div>
+    <aside class="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="#hoje" aria-label="LUAN OS, início"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M13.12 3.32A13 13 0 1 0 28.68 18.88A11 11 0 0 1 13.12 3.32Z" fill="currentColor"/></svg><span data-product-name>LUAN OS</span></a>
+      <nav id="module-sidebar" class="side-nav" aria-label="Módulos do LUAN OS"></nav>
+      <div class="sidebar-foot">
+        <button id="sources-button" type="button" class="sources-button" aria-controls="source-details"><span>Fontes</span><span id="source-summary" class="source-dots"></span></button>
+        <div class="profile"><span class="avatar" role="img" data-profile-initials aria-label="Seu perfil"></span><span class="profile-text"><strong data-profile-name>Seu perfil</strong><small data-profile-label>Perfil pessoal</small></span></div>
+      </div>
     </aside>
 
-    <main id="visao" class="main">
-      <header class="topbar"><div class="breadcrumb"><strong data-product-name>Dashboard Diário</strong><span>Visão geral</span></div><div class="topbar-right"><div class="account-summary"><strong data-profile-name>Seu perfil</strong><small data-profile-label>Perfil pessoal</small></div><span class="avatar" data-profile-initials aria-label="Seu perfil"></span></div></header>
+    <main id="visao" class="main" tabindex="-1">
+      <header class="topbar">
+        <a class="brand" href="#hoje" aria-label="LUAN OS, início"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M13.12 3.32A13 13 0 1 0 28.68 18.88A11 11 0 0 1 13.12 3.32Z" fill="currentColor"/></svg><span data-product-name>LUAN OS</span></a>
+        <span id="module-breadcrumb" class="topbar-module">Hoje</span>
+        <button id="topbar-sources" type="button" class="sources-button" aria-controls="source-details"><span class="sr-only">Fontes</span><span id="source-summary-mobile" class="source-dots"></span></button>
+        <span class="avatar" role="img" data-profile-initials aria-label="Seu perfil"></span>
+      </header>
+
       <div class="content">
-        <section class="hero" aria-labelledby="hero-title">
-          <div class="hero-copy"><div class="eyebrow" id="today-label"></div><h1 id="hero-title">Seu dia<span class="accent">.</span></h1><p>Agenda, prioridades e próximos passos.</p></div>
-          <div class="hero-tools"><button id="quick-add-button" type="button" class="primary-button"><span aria-hidden="true">＋</span> Nova tarefa</button><div class="snapshot" title="O painel verifica uma nova captura enquanto estiver aberto"><span class="snapshot-icon">↻</span><div><strong id="snapshot-title">Aguardando dados da agenda</strong><small id="snapshot-subtitle">Carregando atualização…</small></div></div></div>
+        <section id="hoje" class="masthead" aria-labelledby="hero-title">
+          <div class="masthead-text">
+            <p id="today-label" class="masthead-date"></p>
+            <h1 id="hero-title">Seu dia.</h1>
+            <p id="module-description" class="masthead-lede">O que preciso saber e fazer hoje?</p>
+          </div>
+          <div class="masthead-tools">
+            <div id="day-progress" class="day-progress" hidden>
+              <svg class="ring" viewBox="0 0 64 64" role="img" aria-labelledby="day-progress-text"><circle class="ring-track" cx="32" cy="32" r="26" pathLength="100"></circle><circle id="day-progress-ring" class="ring-value" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 32 32)"></circle><text id="day-progress-pct" x="32" y="37.5" text-anchor="middle">0%</text></svg>
+              <div><strong id="day-progress-text"></strong><small>Progresso de hoje</small></div>
+            </div>
+            <button id="quick-add-button" type="button" class="button primary" aria-keyshortcuts="N"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova tarefa<kbd aria-hidden="true">N</kbd></button>
+          </div>
+          <div id="day-line" class="day-line" hidden></div>
         </section>
 
-        <section class="metric-grid" aria-label="Resumo de prazos">
-          <button class="metric selected" data-horizon="today"><div class="metric-top"><span class="metric-icon coral">◷</span></div><strong id="metric-today">0</strong><span>Para hoje</span><small>Compromissos e tarefas</small></button>
-          <button class="metric" data-horizon="week"><div class="metric-top"><span class="metric-icon gold">▦</span></div><strong id="metric-week">0</strong><span>Próximos 7 dias</span><small>Inclui hoje</small></button>
-          <button class="metric" data-horizon="later"><div class="metric-top"><span class="metric-icon blue">◎</span></div><strong id="metric-later">0</strong><span>Mais à frente</span><small id="metric-later-caption">Até 8 de outubro</small></button>
+        <section id="module-context" class="module-context" hidden aria-labelledby="module-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+          <div><h2 id="module-title" class="sr-only"></h2><p id="module-note"></p><p id="module-source-status" role="status"></p></div>
         </section>
 
-        <div id="freshness-notice" class="freshness-notice" role="status" aria-live="polite" hidden></div>
-        <section class="daily-focus" aria-labelledby="daily-focus-title">
-          <div class="daily-focus-heading"><div><div class="overline">SEU FOCO</div><h2 id="daily-focus-title">Aguardando o foco</h2></div><span id="daily-focus-state" class="focus-state">Carregando…</span></div>
-          <p id="daily-focus-action">Carregando a próxima ação registrada no briefing.</p>
-          <div id="daily-focus-date" class="daily-focus-date"></div>
-        </section>
+        <div class="notices">
+          <p id="overdue-notice" hidden></p>
+          <div id="freshness-notice" role="status" aria-live="polite" hidden></div>
+        </div>
 
-        <section id="prioridades" class="focus-card" aria-labelledby="focus-title">
-          <div class="focus-heading"><div><div class="focus-top"><span class="focus-spark" aria-hidden="true">◷</span><span>PRÓXIMOS PRAZOS</span></div><h2 id="focus-title">O que vem primeiro</h2></div><p id="focus-intro">Avaliações e entregas que pedem atenção.</p></div>
-          <div id="focus-steps"></div>
-        </section>
+        <div id="shared-workspace" class="workspace has-aside">
+          <div id="primary" class="workspace-main">
+            <section id="daily-focus" class="focus home-only" aria-labelledby="daily-focus-title">
+              <div class="focus-head"><h2 id="daily-focus-title">Aguardando o foco</h2><span id="daily-focus-state" class="focus-state">Carregando…</span></div>
+              <p id="daily-focus-action" class="focus-text">Carregando a próxima ação registrada no briefing.</p>
+              <div class="focus-foot">
+                <div id="daily-focus-date" class="daily-focus-date"></div>
+                <div class="focus-actions"><button id="daily-focus-toggle" type="button" class="text-link" aria-expanded="false" aria-controls="daily-focus-action" hidden>Ler foco completo</button><a href="#agenda" id="focus-agenda-link" class="text-link">Ver agenda</a></div>
+              </div>
+            </section>
 
+            <section id="agenda" class="agenda" aria-labelledby="agenda-title">
+              <div class="agenda-head">
+                <h2 id="agenda-title">Agenda</h2>
+                <div class="view-switch" role="group" aria-label="Visualização"><button type="button" data-view="day" aria-pressed="true">Dia</button><button type="button" data-view="week" aria-pressed="false">Semana</button></div>
+              </div>
+              <div class="horizons" role="group" aria-label="Horizonte da agenda">
+                <button type="button" class="horizon" data-horizon="today" aria-pressed="true"><strong id="metric-today">0</strong><span>Hoje</span></button>
+                <button type="button" class="horizon" data-horizon="week" aria-pressed="false"><strong id="metric-week">0</strong><span><span class="sr-only">Próximos </span>7 dias</span></button>
+                <button type="button" class="horizon" data-horizon="later" aria-pressed="false"><strong id="metric-later">0</strong><span>Mais à frente</span></button>
+              </div>
+              <div class="date-nav">
+                <div class="date-arrows">
+                  <button id="prev" type="button" class="icon-button" aria-label="Dia ou semana anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
+                  <button id="next" type="button" class="icon-button" aria-label="Próximo dia ou semana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+                </div>
+                <div class="range" aria-live="polite"><strong id="range-title"></strong><small id="range-caption"></small></div>
+                <button id="go-today" type="button" class="button ghost small">Voltar para hoje</button>
+                <button id="filters-toggle" type="button" class="button ghost small filters-toggle" aria-expanded="false" aria-controls="agenda-filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Filtros<span id="filters-count" class="count"></span></button>
+              </div>
+              <div id="agenda-filters" class="filters"><div class="filters-inner"><div class="filters-grid">
+                <label class="field"><span class="field-label">Área</span><select id="area-filter"><option value="all">Todas</option><option value="faculdade">Faculdade</option><option value="carreira">Carreira</option><option value="conteudo">Conteúdo</option><option value="saude">Saúde</option><option value="desenvolvimento">Desenvolvimento</option><option value="pessoal">Pessoal</option></select></label>
+                <label class="field"><span class="field-label">Prioridade</span><select id="priority-filter"><option value="all">Todas</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label>
+                <label class="check-row"><input type="checkbox" id="show-done"> Mostrar concluídos</label>
+              </div></div></div>
+              <div class="agenda-status"><p id="storage-alert" class="storage-alert" role="alert" hidden></p></div>
+              <div id="week-overview" class="week-overview" role="group" aria-label="Resumo de sete dias. Selecione um dia para ver os detalhes." hidden></div>
+              <p id="week-help" class="week-help" hidden>Contagens conforme os filtros. Horários indicam apenas os registros conhecidos; não representam duração ou disponibilidade.</p>
+              <div id="event-list" class="event-list" tabindex="-1" aria-label="Compromissos e tarefas"></div>
+              <div class="agenda-foot">
+                <button id="add-button" type="button" class="add-row"><span class="plus" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>Adicionar tarefa</button>
+                <p id="sync-status" class="sync-status" role="status">Carregando seus dados…</p>
+              </div>
+            </section>
+          </div>
 
-
-        <div class="main-grid">
-          <section id="agenda" class="agenda-panel" aria-labelledby="agenda-title">
-            <div class="section-heading"><div><div class="overline">ORGANIZE SEU TEMPO</div><h2 id="agenda-title">Agenda e estudos</h2></div><div class="view-switch" role="group" aria-label="Visualização"><button type="button" data-view="day" class="on" aria-pressed="true">Dia</button><button type="button" data-view="week" aria-pressed="false">Semana</button></div></div>
-            <div class="filters"><label>Área <select id="area-filter"><option value="all">Todas</option><option value="faculdade">Faculdade</option><option value="carreira">Carreira</option><option value="conteudo">Conteúdo</option><option value="saude">Saúde</option><option value="desenvolvimento">Desenvolvimento</option><option value="pessoal">Pessoal</option></select></label><label>Prioridade <select id="priority-filter"><option value="all">Todas</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label><label class="done-label"><input type="checkbox" id="show-done"> Mostrar concluídos</label></div>
-            <div class="date-control"><button id="prev" aria-label="Dia ou semana anterior">‹</button><div><strong id="range-title"></strong><small id="range-caption"></small></div><button id="next" aria-label="Próximo dia ou semana">›</button><button class="today-button" id="go-today">Hoje</button></div>
-            <p id="storage-alert" class="storage-alert" role="alert" hidden></p>
-            <p id="action-status" class="action-status" role="status" aria-live="polite" aria-atomic="true"></p>
-            <p id="sync-status" class="action-status" role="status">Carregando seus dados…</p>
-            <div id="week-overview" class="week-overview" role="group" aria-label="Resumo de sete dias. Selecione um dia para ver os detalhes." hidden></div>
-            <p id="week-help" class="week-help" hidden>Contagens conforme os filtros. Horários indicam apenas os registros conhecidos; não representam duração ou disponibilidade.</p>
-            <div id="event-list" tabindex="-1" aria-label="Compromissos e tarefas" aria-live="polite"></div>
-            <div class="panel-footer"><button id="add-button" type="button" class="text-button">＋ Adicionar tarefa</button><button id="data-button" type="button" class="text-button">Exportar / importar dados</button></div>
-          </section>
-
-          <aside class="right-column">
-            <section class="priority-card" aria-labelledby="profile-priorities-title"><div class="card-heading"><h3 id="profile-priorities-title">Suas frentes</h3><span>PRIORIDADES</span></div><div id="profile-priorities"></div></section>
-            <section id="atualizacoes" class="updates-card" aria-labelledby="updates-title">
-              <div class="updates-heading"><div><div class="overline">ACOMPANHE SUAS FRENTES</div><h3 id="updates-title">Atualizações</h3></div><span id="updates-stamp" class="updates-stamp">Carregando…</span></div>
-              <div id="updates-list" class="updates-list" aria-live="polite"></div>
-              <p class="updates-footnote">Resumos das suas frentes, com a data de cada registro.</p>
+          <aside id="secondary" class="workspace-aside" aria-label="Prazos e atualizações">
+            <section id="prioridades" class="deadlines" aria-labelledby="focus-title">
+              <div class="section-head"><h2 id="focus-title">Próximos prazos</h2></div>
+              <p id="focus-intro" class="deadline-intro">Avaliações e entregas que pedem atenção.</p>
+              <div id="focus-steps" class="deadline-list"></div>
+            </section>
+            <section id="atualizacoes" class="updates" aria-labelledby="updates-title">
+              <div class="section-head"><h2 id="updates-title">Atualizações</h2><span id="updates-stamp" class="section-meta">Carregando…</span></div>
+              <details id="updates-disclosure" class="disclosure"><summary>Ler resumos das frentes<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div id="updates-list" class="updates-list"></div></details>
             </section>
           </aside>
         </div>
-        <section id="vagas" class="jobs-panel" aria-labelledby="jobs-title">
-          <div class="jobs-heading"><div><div class="overline">OPORTUNIDADES SELECIONADAS</div><h2 id="jobs-title">Vagas para acompanhar</h2><p>Compatibilidade estimada a partir do perfil. Confira cada anúncio antes de decidir.</p></div><button id="jobs-retry" class="text-button" type="button">Atualizar vagas</button></div>
-          <div class="jobs-meta"><span id="jobs-stamp">Carregando vagas…</span><span id="jobs-state" class="jobs-state" role="status" aria-live="polite"></span></div>
-          <div id="jobs-list" class="jobs-list" aria-live="polite"><p class="jobs-empty">Carregando oportunidades…</p></div>
 
+        <section id="vagas" class="jobs" aria-labelledby="jobs-title">
+          <div class="jobs-head">
+            <div><h2 id="jobs-title">Radar de vagas</h2><p>Compatibilidade estimada a partir do perfil. Confira cada anúncio antes de decidir.</p></div>
+            <div class="jobs-actions"><button id="jobs-retry" class="button secondary small" type="button" aria-describedby="jobs-retry-help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Buscar novas vagas</button><button id="jobs-reload" class="button secondary small" type="button">Reler vagas salvas</button><span id="jobs-retry-help" class="jobs-retry-help">A busca consulta alertas do Gmail apenas quando você clicar. Reler exibe a captura salva.</span></div>
+            <p id="jobs-search-status" class="jobs-search-status" role="status" aria-live="polite"></p>
+            <div id="jobs-gmail-consent" class="jobs-gmail-consent" hidden><p>Gmail somente leitura: o consentimento permite ler toda a caixa de e-mail. Esta busca limita a consulta aos alertas de vagas do LinkedIn.</p><button id="jobs-gmail-authorize" class="button secondary small" type="button" hidden>Autorizar Gmail</button></div>
+          </div>
+          <div class="jobs-meta"><span id="jobs-stamp">Carregando vagas…</span><span id="jobs-state" class="jobs-state" role="status" aria-live="polite"></span></div>
+          <details id="jobs-disclosure" class="disclosure"><summary>Explorar oportunidades<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div id="jobs-list" class="jobs-list"><p class="jobs-empty">Carregando oportunidades…</p></div></details>
+          <section id="jobs-pending" class="jobs-pending" aria-labelledby="jobs-pending-title" hidden><h3 id="jobs-pending-title">Confirmação oficial pendente</h3><p>Encontradas nos alertas. A disponibilidade e os requisitos ainda precisam de confirmação na página oficial.</p><div id="jobs-pending-list" class="jobs-list"></div></section>
           <p class="jobs-footnote">A disponibilidade e os requisitos podem mudar. Confirme-os na página da vaga antes de se candidatar.</p>
         </section>
-        <footer><strong data-product-name>Dashboard Diário</strong><span id="data-status">Verificando agenda atualizada…</span><span>Datas e horários em America/Sao_Paulo. <span id="profile-footer-note"></span></span></footer>
+
+        <section id="agents-panel" class="panel-page" hidden aria-labelledby="agents-title">
+          <h2 id="agents-title" class="sr-only">Agentes e Automações</h2>
+          <div class="setting">
+            <div class="setting-intro"><h2>Um Core compartilhado</h2><p>O plugin existente consulta o LUAN OS e altera tarefas somente mediante pedido explícito. Agentes especializados ainda não estão ativos.</p></div>
+            <div class="setting-body">
+              <div class="integration-list">
+                <article><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><strong>Google Calendar</strong><p>Agenda capturada pela rotina cloud e confirmada no Core.</p></article>
+                <article><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><strong>Gmail</strong><p>Resumos, alertas importantes e radar de vagas pela mesma rotina.</p></article>
+                <article><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3z"/></svg><strong>Google Drive</strong><p>Documentos consultados quando necessários para confirmar progresso.</p></article>
+              </div>
+              <p class="module-limit">Esta lista descreve a configuração. Não indica conectores logados nem execuções recentes.</p>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="setting-intro"><h2>Saúde do Core</h2><p>Confere o banco D1 e as capturas guardadas, sem buscar dados novos.</p></div>
+            <div class="setting-body">
+              <p id="core-health-status" class="status-line" role="status">Ainda não verificada nesta tela.</p>
+              <button id="core-health-button" type="button" class="button secondary">Verificar D1 e capturas</button>
+              <p class="module-limit">Esta verificação não comprova login dos conectores, execução das rotinas ou saúde permanente do MCP.</p>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="setting-intro"><h2>Rotinas compartilhadas</h2><p>O que está configurado para rodar fora do painel.</p></div>
+            <div class="setting-body">
+              <div id="automation-plan"></div>
+              <p id="automation-audit" class="module-limit">Esta lista não é um monitor ao vivo de execuções. Consulte Agendado no ChatGPT para acompanhar resultados.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="settings-panel" class="panel-page" hidden aria-labelledby="settings-title">
+          <h2 id="settings-title" class="sr-only">Configurações</h2>
+          <div class="setting">
+            <div class="setting-intro"><h2>Perfil</h2><p>Personaliza saudação e prioridades. Não muda a conta autenticada.</p></div>
+            <div class="setting-body">
+              <div class="profile-card"><span class="avatar" role="img" data-profile-initials aria-label="Seu perfil"></span><div><strong data-profile-name>Seu perfil</strong><small data-profile-label>Perfil pessoal</small></div></div>
+              <p>A conta autenticada determina seus dados e o acesso ao sistema.</p>
+              <details class="disclosure"><summary>Prioridades do perfil<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div id="profile-priorities"></div></details>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="setting-intro"><h2>Dados e backup</h2><p>Agenda, tarefas, conclusões e atualizações usam o mesmo Core em todos os dispositivos.</p></div>
+            <div class="setting-body">
+              <p>Os filtros valem só para esta sessão. Dados antigos do navegador continuam preservados para revisão.</p>
+              <button id="settings-data-button" type="button" class="button secondary">Backup e importação</button>
+              <p class="module-limit">O backup inclui tarefas, conclusões e exclusões. Não é um backup integral do Calendar, dos resumos, do Drive ou do banco.</p>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="setting-intro"><h2 id="calendar-sync-title" tabindex="-1">Google Agenda</h2><p>Envia tarefas com data e horário para um calendário do Google e traz de volta mudanças de título, data e horário feitas nesses eventos.</p></div>
+            <div class="setting-body">
+              <p class="module-limit">Compromissos que não vieram do LUAN OS nunca são alterados nem viram tarefas.</p>
+              <p id="calendar-sync-status" class="calendar-sync-status" role="status" aria-live="polite">Verificando a integração…</p>
+              <form id="calendar-sync-form" class="calendar-sync-form" aria-labelledby="calendar-sync-title" hidden>
+                <label class="switch">Sincronizar tarefas com o Google Agenda<input type="checkbox" name="enabled"></label>
+                <label class="field"><span class="field-label">ID do calendário de destino</span><input name="calendar_id" maxlength="256" autocomplete="off" spellcheck="false" placeholder="…@group.calendar.google.com" aria-describedby="calendar-id-help"></label>
+                <p id="calendar-id-help" class="field-help">Recomendado: um calendário só para isso, como “LUAN OS · Tarefas”. O calendário principal também é lido pela rotina da agenda.</p>
+                <div class="field-row">
+                  <label class="field"><span class="field-label">Novas tarefas</span><select name="default_mode"><option value="on">Sincronizar por padrão</option><option value="off">Só quando eu escolher</option></select></label>
+                  <label class="field"><span class="field-label">Tarefas sem horário</span><select name="untimed"><option value="skip">Não enviar</option><option value="all_day">Dia inteiro, sem ocupar a agenda</option></select></label>
+                </div>
+                <div class="field-row">
+                  <label class="field"><span class="field-label">Ao concluir</span><select name="completed"><option value="mark">Marcar o evento com ✔</option><option value="keep">Manter o evento como está</option><option value="delete">Excluir o evento, se não foi alterado no Google</option></select></label>
+                  <label class="field"><span class="field-label">Ao excluir a tarefa</span><select name="removal"><option value="keep">Manter o evento no Google</option><option value="delete">Excluir o evento, se não foi alterado no Google</option></select></label>
+                </div>
+                <label class="field"><span class="field-label">Duração padrão (minutos)</span><input name="duration_minutes" type="number" inputmode="numeric" min="15" max="480" step="5" required></label>
+                <div class="calendar-sync-actions"><button id="calendar-sync-save" type="submit" class="button primary">Salvar configuração</button><button id="calendar-sync-run" type="button" class="button secondary">Sincronizar agora</button></div>
+              </form>
+              <p id="calendar-sync-alert" class="storage-alert" role="alert" hidden></p>
+              <div id="calendar-sync-issues" class="calendar-sync-issues"></div>
+              <p class="module-limit">Excluir um evento no Google preserva a tarefa. Um evento alterado no Google (inclusive notas, lembretes ou cor) nunca é excluído automaticamente. Conflitos nunca são resolvidos automaticamente: você escolhe qual versão manter.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="modulos" class="module-launcher home-only" aria-labelledby="modules-title">
+          <details id="module-disclosure" class="disclosure"><summary><span id="modules-title">Todos os módulos</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div id="module-links" class="module-grid"></div></details>
+        </section>
+
+        <details id="source-details" class="source-details disclosure">
+          <summary>Fontes e atualização<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="source-body">
+            <div class="snapshot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg><div><strong id="snapshot-title">Aguardando dados da agenda</strong><small id="snapshot-subtitle">Carregando atualização…</small></div></div>
+            <div id="source-chips" class="source-chips" role="group" aria-label="Estado das fontes"></div>
+          </div>
+        </details>
+        <footer class="footer"><strong data-product-name>LUAN OS</strong><span id="data-status">Verificando agenda atualizada…</span><span>Datas e horários em America/Sao_Paulo. <span id="profile-footer-note"></span></span><button id="data-button" type="button" class="button ghost small">Backup e importação</button></footer>
       </div>
     </main>
   </div>
-  <nav class="mobile-nav" aria-label="Navegação do painel">
-    <a href="#visao" class="mobile-nav-item active" aria-current="location"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Início</a>
-    <a href="#agenda" class="mobile-nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg>Agenda</a>
-    <a href="#prioridades" class="mobile-nav-item" aria-label="Prioridades"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4m0 0c5-4 9 4 14 0v10c-5 4-9-4-14 0"/></svg>Prazos</a>
-    <a href="#atualizacoes" class="mobile-nav-item" aria-label="Atualizações"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>Resumos</a>
-    <a href="#vagas" class="mobile-nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3 12c6 4 12 4 18 0M12 12v4"/></svg>Vagas</a>
+
+  <nav class="mobile-nav" aria-label="Navegação do LUAN OS">
+    <a href="#hoje" class="mobile-nav-item">Hoje</a>
+    <a href="#academico" class="mobile-nav-item">Acadêmico</a>
+    <a href="#carreira" class="mobile-nav-item">Carreira</a>
+    <button id="more-button" type="button" class="mobile-more" aria-haspopup="dialog" aria-controls="nav-sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg><span>Módulos</span></button>
   </nav>
-  <dialog id="task-dialog" aria-labelledby="task-dialog-title"><form id="task-form" method="dialog"><div class="dialog-head"><div><div class="overline">TAREFA DO PAINEL</div><h2 id="task-dialog-title">Nova tarefa</h2></div><button id="close-dialog" type="button" aria-label="Fechar">×</button></div><label>Título<input name="title" required maxlength="100" placeholder="O que você precisa fazer?"></label><div class="dialog-row"><label>Data<input name="date" required type="date"></label><label>Hora <span>(opcional)</span><input name="time" type="time"></label></div><div class="dialog-row"><label>Área<select name="area"><option value="faculdade">Faculdade</option><option value="carreira">Carreira</option><option value="conteudo">Conteúdo</option><option value="saude">Saúde</option><option value="desenvolvimento">Desenvolvimento</option><option value="pessoal">Pessoal</option></select></label><label>Prioridade<select name="priority"><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label></div><p id="task-storage-alert" class="storage-alert" role="alert" hidden></p><div class="dialog-actions"><button type="button" id="cancel-dialog">Cancelar</button><button id="task-submit" type="submit">Adicionar tarefa</button></div></form></dialog>
-  <dialog id="delete-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-description">
-    <h2 id="delete-dialog-title">Excluir tarefa?</h2>
-    <p id="delete-task-title"></p>
-    <p id="delete-description">A tarefa e sua marcação de conclusão serão removidas. Backups antigos pedirão confirmação antes de recriá-la.</p>
-    <p id="delete-storage-alert" class="storage-alert" role="alert" hidden></p>
-    <div class="dialog-actions"><button id="cancel-delete" type="button">Cancelar</button><button id="confirm-delete" class="danger-button" type="button">Excluir tarefa</button></div>
+  <button id="fab-add" type="button" class="fab" aria-label="Nova tarefa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  <p id="action-status" class="toast" role="status" aria-live="polite" aria-atomic="true"></p>
+
+  <dialog id="nav-sheet" class="dialog" aria-labelledby="nav-sheet-title">
+    <div class="dialog-scroll">
+      <div class="dialog-head"><h2 id="nav-sheet-title">Módulos</h2><button id="close-sheet" type="button" class="icon-button" aria-label="Fechar módulos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <nav id="sheet-links" class="sheet-links" aria-label="Todos os módulos"></nav>
+    </div>
   </dialog>
-  <dialog id="data-dialog" aria-labelledby="data-dialog-title" aria-describedby="data-description">
-    <div class="dialog-head"><h2 id="data-dialog-title">Seus dados em outro dispositivo</h2><button id="close-data" type="button" aria-label="Fechar dados">×</button></div>
-    <p id="data-description">Tarefas e conclusões são sincronizadas entre dispositivos quando o painel está online. Use o arquivo para guardar um backup ou transferir dados de outro ambiente.</p>
-    <p>O arquivo pode conter informações pessoais. Guarde-o em um local privado. A agenda e os resumos publicados não entram neste backup.</p>
-    <button id="export-data" class="primary-button" type="button">Exportar backup JSON</button>
-    <section id="legacy-data" hidden><h3>Dados antigos deste navegador</h3><p>Seus dados anteriores continuam preservados. Revise a mesclagem antes de adicioná-los ao painel sincronizado.</p><button id="import-legacy" class="primary-button" type="button">Revisar dados antigos</button><button id="export-legacy" class="text-button" type="button">Exportar dados antigos</button></section>
-    <label class="import-label" for="import-file">Importar backup do painel (até 2 MB)</label>
-    <input id="import-file" type="file" accept="application/json,.json" aria-describedby="import-help">
-    <p id="import-help">Os dados serão mesclados. Conflitos exigem sua escolha; tarefas ausentes no arquivo serão mantidas.</p>
-    <p id="data-storage-alert" class="storage-alert" role="alert" hidden></p>
-    <section id="import-preview" aria-label="Revisar importação" hidden>
-      <p id="import-summary" role="status"></p><div id="import-conflicts"></div>
-      <div class="dialog-actions"><button id="cancel-import" type="button">Cancelar importação</button><button id="apply-import" class="primary-button" type="button" disabled>Confirmar importação</button></div>
-    </section>
+
+  <dialog id="task-dialog" class="dialog" aria-labelledby="task-dialog-title">
+    <form id="task-form" class="task-form" method="dialog">
+      <div class="dialog-scroll">
+        <div class="dialog-head"><h2 id="task-dialog-title">Nova tarefa</h2><button id="close-dialog" type="button" class="icon-button" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+        <label class="field title-field"><span class="field-label">Título</span><input name="title" required maxlength="100" autocomplete="off" placeholder="O que você precisa fazer?"></label>
+        <div class="field-row">
+          <label class="field"><span class="field-label">Data</span><input name="date" required type="date"></label>
+          <label class="field"><span class="field-label">Hora <span class="optional">(opcional)</span></span><input name="time" type="time"></label>
+        </div>
+        <div id="quick-dates" class="quick-dates" role="group" aria-label="Atalhos de data"><button type="button" data-date-offset="0" aria-pressed="false">Hoje</button><button type="button" data-date-offset="1" aria-pressed="false">Amanhã</button><button type="button" data-date-offset="7" aria-pressed="false">Daqui a uma semana</button></div>
+        <fieldset class="field"><legend class="field-label">Área</legend><div class="choice-grid">
+          <label class="choice"><input type="radio" name="area" value="faculdade"><span><i data-area="faculdade"></i>Faculdade</span></label>
+          <label class="choice"><input type="radio" name="area" value="carreira"><span><i data-area="carreira"></i>Carreira</span></label>
+          <label class="choice"><input type="radio" name="area" value="conteudo"><span><i data-area="conteudo"></i>Conteúdo</span></label>
+          <label class="choice"><input type="radio" name="area" value="saude"><span><i data-area="saude"></i>Saúde</span></label>
+          <label class="choice"><input type="radio" name="area" value="desenvolvimento"><span><i data-area="desenvolvimento"></i>Desenvolvimento</span></label>
+          <label class="choice"><input type="radio" name="area" value="pessoal" checked><span><i data-area="pessoal"></i>Pessoal</span></label>
+        </div></fieldset>
+        <fieldset class="field"><legend class="field-label">Prioridade</legend><div class="segmented">
+          <label class="choice"><input type="radio" name="priority" value="high" checked><span>Alta</span></label>
+          <label class="choice"><input type="radio" name="priority" value="medium"><span>Média</span></label>
+          <label class="choice"><input type="radio" name="priority" value="low"><span>Baixa</span></label>
+        </div></fieldset>
+        <label id="task-calendar-field" class="field" hidden><span class="field-label">Google Agenda</span><select name="calendar"><option value="inherit">Seguir a configuração geral</option><option value="on">Sincronizar esta tarefa</option><option value="off">Não sincronizar esta tarefa</option></select></label>
+        <p id="task-storage-alert" class="storage-alert" role="alert" hidden></p>
+      </div>
+      <div class="dialog-foot"><button type="button" id="cancel-dialog" class="button ghost">Cancelar</button><button id="task-submit" type="submit" class="button primary">Adicionar tarefa</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="delete-dialog" class="dialog confirm-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-description">
+    <div class="dialog-scroll">
+      <div class="dialog-head"><h2 id="delete-dialog-title">Excluir tarefa?</h2></div>
+      <p id="delete-task-title" class="confirm-title"></p>
+      <p id="delete-description">A tarefa e sua marcação de conclusão serão removidas. Backups antigos pedirão confirmação antes de recriá-la.</p>
+      <p id="delete-storage-alert" class="storage-alert" role="alert" hidden></p>
+    </div>
+    <div class="dialog-foot"><button id="cancel-delete" type="button" class="button ghost">Cancelar</button><button id="confirm-delete" class="button danger" type="button">Excluir tarefa</button></div>
+  </dialog>
+
+  <dialog id="data-dialog" class="dialog" aria-labelledby="data-dialog-title" aria-describedby="data-description">
+    <div class="dialog-scroll">
+      <div class="dialog-head"><div><h2 id="data-dialog-title">Backup e importação</h2><p id="data-description">Tarefas e conclusões já são sincronizadas entre dispositivos quando o painel está online. Use o arquivo para guardar um backup ou trazer dados de outro ambiente.</p></div><button id="close-data" type="button" class="icon-button" aria-label="Fechar backup e importação"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <section class="data-section" aria-labelledby="export-title">
+        <h3 id="export-title">Exportar</h3>
+        <p>O arquivo pode conter informações pessoais. Guarde-o em um local privado.</p>
+        <p class="module-limit">Inclui tarefas, conclusões e exclusões. A agenda e os resumos publicados não entram neste backup.</p>
+        <button id="export-data" class="button primary" type="button">Exportar backup JSON</button>
+      </section>
+      <section id="legacy-data" class="data-section" aria-labelledby="legacy-title" hidden>
+        <h3 id="legacy-title">Dados antigos deste navegador</h3>
+        <p>Seus dados anteriores continuam preservados. Revise a mesclagem antes de adicioná-los ao painel sincronizado.</p>
+        <div class="choice-actions"><button id="import-legacy" class="button secondary" type="button">Revisar dados antigos</button><button id="export-legacy" class="button ghost" type="button">Exportar dados antigos</button></div>
+      </section>
+      <section class="data-section" aria-labelledby="import-title">
+        <h3 id="import-title">Importar</h3>
+        <label class="import-label" for="import-file">Backup do painel (até 2 MB)</label>
+        <input id="import-file" type="file" accept="application/json,.json" aria-describedby="import-help">
+        <p id="import-help" class="module-limit">Os dados serão mesclados. Conflitos exigem sua escolha; tarefas ausentes no arquivo serão mantidas.</p>
+        <p id="data-storage-alert" class="storage-alert" role="alert" hidden></p>
+        <section id="import-preview" class="import-preview" aria-label="Revisar importação" hidden>
+          <p id="import-summary" role="status"></p>
+          <div id="import-conflicts" class="calendar-sync-issues"></div>
+          <div class="choice-actions"><button id="cancel-import" type="button" class="button ghost">Cancelar importação</button><button id="apply-import" class="button primary" type="button" disabled>Confirmar importação</button></div>
+        </section>
+      </section>
+    </div>
   </dialog>
 </body>
 </html>

@@ -195,8 +195,28 @@
     }
     const snap = path.match(/^\/api\/snapshots\/(agenda|updates|jobs)$/);
     if (snap && method === 'GET') return json(200, {agenda, updates, jobs}[snap[1]]());
+
+    // Integrações que dependem de contas reais (Google Agenda, Gmail e busca manual de vagas)
+    // aparecem como "não configuradas", o mesmo estado que o LUAN OS real mostra sem credenciais.
+    if (path === '/api/health' && method === 'GET') {
+      const stamp = captureStamp(), source = {status: 'current', recorded_at: stamp};
+      return json(200, {status: 'ok', storage: 'ok', checked_at: new Date().toISOString(), snapshots: {agenda: source, updates: source, jobs: source}});
+    }
+    if (path === '/api/gmail/status' && method === 'GET') return json(200, GMAIL_OFF);
+    if (path === '/api/jobs/search/status' && method === 'GET') return json(200, {gmail: GMAIL_OFF, preferences_configured: false, busy: false, operation: null});
+    if (path === '/api/calendar-sync' && method === 'GET') return json(200, CALENDAR_OFF);
+    if (path === '/api/gmail/oauth/start' || path === '/api/jobs/search' || path.startsWith('/api/calendar-sync/')) {
+      toast('Na demonstração, as integrações com Google Agenda e Gmail ficam desligadas.');
+      return json(503, {error: 'not_configured'});
+    }
     return null;
   }
+  const GMAIL_OFF = {configured: false, connected: false, reauthorization_required: false};
+  const CALENDAR_OFF = {
+    revision: 1, configured: false, available: false, busy: false,
+    settings: {enabled: false}, cursor: {}, counts: {synced: 0, pending: 0, error: 0, conflict: 0, detached: 0},
+    entries: [], warnings: [],
+  };
 
   root.fetch = async function (input, init) {
     const url = new URL(typeof input === 'string' ? input : input.url, location.href);
@@ -254,6 +274,7 @@
       .demo-bar{position:relative;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;
         padding:9px 16px;background:#14213d;color:#f5f1e6;font:500 14px/1.4 system-ui,sans-serif;text-align:center}
       .demo-bar a,.demo-bar button{color:#ffc857;font:inherit;font-weight:700;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+      .demo-bar--inline{grid-column:1/-1;border-radius:12px;margin:0 0 18px;justify-content:flex-start;text-align:left}
       .demo-bar a:focus-visible,.demo-bar button:focus-visible{outline:2px solid #ffc857;outline-offset:3px}
       #demo-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;z-index:1001;max-width:min(92vw,460px);
         padding:12px 16px;border-radius:10px;background:#14213d;color:#f5f1e6;font:500 14px/1.4 system-ui,sans-serif;transition:opacity .2s,transform .2s;pointer-events:none}
@@ -269,7 +290,9 @@
     bar.innerHTML = '<span>Demonstração do LUAN OS com dados fictícios. A Marina não existe e o que você mudar fica só neste navegador.</span>'
       + '<button type="button" data-demo-reset>Recomeçar a demo</button>'
       + '<a href="' + PORTFOLIO + '">Voltar ao portfólio</a>';
-    document.body.prepend(bar);
+    // A interface rola até a seção "Hoje" ao abrir; a faixa fica no topo dela para ser vista logo.
+    const host = document.getElementById('hoje');
+    if (host) { bar.classList.add('demo-bar--inline'); host.prepend(bar); } else document.body.prepend(bar);
     bar.querySelector('[data-demo-reset]').addEventListener('click', async () => {
       await resetDemo();
       if (!memoryOnly) { location.reload(); return; }

@@ -2,6 +2,7 @@
   'use strict';
   const D=root.LuanLocalData||(typeof require==='function'&&require('./local-data.js'));
   const messages={401:'Entre novamente no painel para acessar seus dados.',403:'A gravação foi recusada. Reabra o painel no endereço original.',409:'Os dados mudaram em outro dispositivo. Revise a versão atual e tente novamente.',503:'O armazenamento do painel está indisponível.',404:'A sincronização ainda não está configurada neste ambiente.'};
+  const storedRecordMessage='O registro salvo no servidor não pôde ser lido (inválido ou incompatível). Nada foi alterado ou apagado; a recuperação exige um procedimento controlado.';
   function createStore(fetcher,notify=()=>{},{timeoutMs=12000}={}){
     let current={revision:0,data:D.empty()},loaded=false,queue=Promise.resolve();
     const read=()=>D.validateState(current.data);
@@ -18,7 +19,12 @@
         let response;
         try{response=await fetcher('/api/state',{credentials:'same-origin',cache:'no-store',...options,signal:controller.signal});}
         catch{const error=Error('Sem conexão com o painel. Tente novamente quando estiver online.');error.uncertain=writing;throw error;}
-        if(!response.ok){const error=Error(messages[response.status]||'Não foi possível sincronizar os dados.');error.status=response.status;error.uncertain=writing&&response.status>=500;throw error;}
+        if(!response.ok){
+          // A stored record the server cannot read is a data fault: nothing was written, so it is never an uncertain write.
+          let code;try{code=(await response.json())?.error;}catch{}
+          const stored=typeof code==='string'&&code.startsWith('stored_record_');
+          const error=Error(stored?storedRecordMessage:messages[response.status]||'Não foi possível sincronizar os dados.');error.status=response.status;if(stored)error.code=code;error.uncertain=writing&&!stored&&response.status>=500;throw error;
+        }
         try{return await response.json();}catch{const error=Error('Resposta de sincronização inválida.');error.uncertain=writing;throw error;}
       };
       try{

@@ -10,20 +10,23 @@ Versão de demonstração do LUAN OS, o painel diário que eu uso todo dia: agen
 - Criar, editar, concluir e excluir tarefas.
 - Ler os resumos por frente (faculdade, carreira, e-mail, conteúdo).
 - Ver o radar de vagas com a compatibilidade de cada uma.
+- Navegar pelos módulos (Acadêmico, Carreira, Projetos, Agentes e Automações, Configurações) e verificar a saúde do Core.
 - Usar **Recomeçar a demo** para voltar ao estado inicial.
+
+As integrações que dependem de contas reais (Google Agenda, Gmail e busca manual de vagas) aparecem como **não configuradas**, o mesmo estado que o LUAN OS mostra sem credenciais.
 
 ## Como a demo funciona
 
-A interface é a mesma do LUAN OS real. Na versão real, ela conversa com um Worker na Cloudflare, com um banco D1 como fonte da verdade, e rotinas agendadas alimentam agenda, resumos e vagas às 07h e às 19h.
+A interface é a mesma da versão publicada mais recente do LUAN OS (redesenho "Linha do dia", out/2026). Na versão real, ela conversa com um Worker na Cloudflare, com um banco D1 como fonte da verdade, e rotinas agendadas alimentam agenda, resumos e vagas às 07h e às 19h.
 
-Aqui, o arquivo `demo-api.js` responde no próprio navegador às mesmas rotas (`/api/state` e `/api/snapshots/*`), com:
+Aqui, o arquivo `demo-api.js` responde no próprio navegador às mesmas rotas (`/api/state`, `/api/snapshots/*`, `/api/health` e as rotas das integrações), com:
 
 - dados fictícios gerados a partir da data de hoje;
 - o mesmo controle de revisão do servidor real: uma gravação com revisão desatualizada é recusada (409) e dados fora do contrato são rejeitados (400);
 - persistência em `localStorage`, só neste navegador.
 
-Nenhum arquivo da interface foi alterado para a demo, exceto `profile.js` (perfil fictício) e a inclusão do `demo-api.js` no `index.html`.
+Nenhum arquivo da interface foi alterado para a demo, exceto `profile.js` e `automations.js` (apresentação fictícia) e a inclusão do `demo-api.js` no `index.html`.
 
-O código da versão pessoal, as rotinas e o servidor MCP com 11 ferramentas continuam privados, porque lidam com dados reais.
+O código da versão pessoal, as rotinas e o servidor MCP com 15 ferramentas continuam privados, porque lidam com dados reais.
 
 Feito por [Luan de Almeida Lourenço](https://luanalourenco0.github.io/).

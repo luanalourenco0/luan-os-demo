@@ -8,8 +8,13 @@
   const realFetch = root.fetch.bind(root);
 
   // ---------- Datas relativas a hoje, no fuso de São Paulo ----------
-  const today = () => new Intl.DateTimeFormat('en-CA', {timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date());
-  const hourNow = () => Number(new Intl.DateTimeFormat('en-GB', {timeZone: ZONE, hour: '2-digit', hour12: false}).format(new Date()));
+  // Dia e hora vêm sempre do mesmo instante, para não cruzar a meia-noite entre duas leituras.
+  const PARTS = new Intl.DateTimeFormat('en-CA', {timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23'});
+  function clock(now = new Date()) {
+    const p = Object.fromEntries(PARTS.formatToParts(now).map(x => [x.type, x.value]));
+    return {day: p.year + '-' + p.month + '-' + p.day, hour: Number(p.hour)};
+  }
+  const today = () => clock().day;
   function addDays(day, n) {
     const d = new Date(day + 'T12:00:00Z');
     d.setUTCDate(d.getUTCDate() + n);
@@ -17,7 +22,7 @@
   }
   // O painel real atualiza às 07h e às 19h; a captura fictícia segue o mesmo ritmo.
   function captureStamp() {
-    const h = hourNow(), d = today();
+    const {day: d, hour: h} = clock();
     if (h >= 19) return d + 'T19:00:00-03:00';
     if (h >= 7) return d + 'T07:00:00-03:00';
     return addDays(d, -1) + 'T19:00:00-03:00';
@@ -116,27 +121,39 @@
   }
 
   // ---------- Estado persistido só neste navegador ----------
+  // Se o localStorage falhar uma vez (bloqueado ou cheio), a aba passa a usar só a memória,
+  // para nunca responder com uma revisão e depois ler outra mais antiga.
   let memory = null;
-  function loadStore() {
+  let memoryOnly = false;
+  const fresh = value => value && Number.isSafeInteger(value.revision) && value.seeded_for >= addDays(today(), -3);
+  function readStorage() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      if (raw) {
-        const value = JSON.parse(raw);
-        // Recomeça a demo quando as datas fictícias ficaram velhas demais.
-        if (value && value.seeded_for && value.seeded_for >= addDays(today(), -3)) return value;
-      }
-    } catch (err) { /* sem armazenamento: usa a memória desta aba */ }
-    if (memory) return memory;
-    return {revision: 1, seeded_for: today(), data: seedState()};
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      memoryOnly = true;
+      return null;
+    }
   }
   function saveStore(value) {
     memory = value;
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(value)); } catch (err) { /* segue só em memória */ }
+    if (memoryOnly) return;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(value)); } catch (err) { memoryOnly = true; }
+  }
+  function loadStore() {
+    const stored = memoryOnly ? memory : readStorage() || memory;
+    if (fresh(stored)) return stored;
+    // Recomeça com datas novas, mas a revisão só sobe: abas abertas nunca veem a revisão voltar.
+    const seeded = {revision: (stored && Number.isSafeInteger(stored.revision) ? stored.revision : 0) + 1, seeded_for: today(), data: seedState()};
+    saveStore(seeded);
+    return seeded;
   }
   function resetDemo() {
-    memory = null;
-    try { localStorage.removeItem(STORE_KEY); } catch (err) { /* nada a limpar */ }
+    const current = loadStore();
+    saveStore({revision: current.revision + 1, seeded_for: today(), data: seedState()});
   }
+  // Ler, comparar e gravar como uma operação só, também entre abas, quando o navegador suporta.
+  const exclusive = fn => (navigator.locks && navigator.locks.request) ? navigator.locks.request(STORE_KEY, fn) : fn();
 
   // ---------- Rotas simuladas ----------
   const json = (status, body) => new Response(JSON.stringify(body), {status, headers: {'Content-Type': 'application/json'}});
@@ -146,17 +163,23 @@
     await pause(120); // latência pequena, como uma rede de verdade
     const method = (init && init.method || 'GET').toUpperCase();
     if (path === '/api/state') {
-      const current = loadStore();
-      if (method === 'GET') return json(200, {revision: current.revision, data: current.data});
+      if (method === 'GET') {
+        const current = await exclusive(async () => loadStore());
+        return json(200, {revision: current.revision, data: current.data});
+      }
       if (method === 'PUT') {
         let body;
         try { body = JSON.parse(init.body); } catch (err) { return json(400, {error: 'JSON inválido'}); }
-        if (body.revision !== current.revision) return json(409, {error: 'Revisão desatualizada'});
+        if (!body || typeof body !== 'object' || !Number.isSafeInteger(body.revision)) return json(400, {error: 'Corpo inválido'});
         let data;
         try { data = root.LuanLocalData.validateState(body.data); } catch (err) { return json(400, {error: err.message}); }
-        const next = {revision: current.revision + 1, seeded_for: current.seeded_for, data};
-        saveStore(next);
-        return json(200, {revision: next.revision, data: next.data});
+        return exclusive(async () => {
+          const current = loadStore();
+          if (body.revision !== current.revision) return json(409, {error: 'Revisão desatualizada'});
+          const next = {revision: current.revision + 1, seeded_for: current.seeded_for, data};
+          saveStore(next);
+          return json(200, {revision: next.revision, data: next.data});
+        });
       }
       return json(405, {error: 'Método não suportado'});
     }
@@ -189,8 +212,20 @@
     toast.timer = setTimeout(() => el.classList.remove('is-on'), 3200);
   }
 
+  // Os IDs das vagas são fictícios, mas um link do LinkedIn com um número qualquer pode abrir
+  // uma vaga real. Assim que um link desses aparece, ele perde o endereço externo; isso cobre
+  // clique comum, clique do meio, teclado e "abrir em nova aba".
+  const JOB_LINK = 'a[href*="linkedin.com/jobs/view/"]';
+  function neutralize(scope) {
+    scope.querySelectorAll(JOB_LINK).forEach((a) => {
+      a.setAttribute('href', '#');
+      a.removeAttribute('target');
+      a.dataset.demoJob = 'true';
+      a.setAttribute('aria-label', (a.textContent.trim() || 'Vaga') + ' (vaga fictícia)');
+    });
+  }
   document.addEventListener('click', (event) => {
-    const link = event.target.closest && event.target.closest('a[href*="linkedin.com/jobs/view/"]');
+    const link = event.target.closest && event.target.closest(JOB_LINK + ', a[data-demo-job]');
     if (link) {
       event.preventDefault();
       toast('Vaga fictícia. No LUAN OS real, este link abre a vaga no LinkedIn.');
@@ -198,15 +233,20 @@
   }, true);
 
   document.addEventListener('DOMContentLoaded', () => {
+    neutralize(document);
+    new MutationObserver(() => neutralize(document.body)).observe(document.body, {childList: true, subtree: true});
+
     const style = document.createElement('style');
+    // A faixa fica no fluxo da página (não fixa) para não cobrir o link de salto nem os cabeçalhos fixos.
     style.textContent = `
-      .demo-bar{position:sticky;top:0;z-index:1000;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;
+      .demo-bar{position:relative;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;
         padding:9px 16px;background:#14213d;color:#f5f1e6;font:500 14px/1.4 system-ui,sans-serif;text-align:center}
       .demo-bar a,.demo-bar button{color:#ffc857;font:inherit;font-weight:700;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
       .demo-bar a:focus-visible,.demo-bar button:focus-visible{outline:2px solid #ffc857;outline-offset:3px}
-      #demo-toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;z-index:1001;max-width:min(92vw,460px);
+      #demo-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;z-index:1001;max-width:min(92vw,460px);
         padding:12px 16px;border-radius:10px;background:#14213d;color:#f5f1e6;font:500 14px/1.4 system-ui,sans-serif;transition:opacity .2s,transform .2s;pointer-events:none}
       #demo-toast.is-on{opacity:1;transform:translate(-50%,0)}
+      @media (max-width: 900px){#demo-toast{bottom:calc(96px + env(safe-area-inset-bottom))}}
       @media (prefers-reduced-motion: reduce){#demo-toast{transition:none}}`;
     document.head.append(style);
 

@@ -275,6 +275,8 @@
       if (!memoryOnly) { location.reload(); return; }
       // Sem armazenamento, recarregar apagaria a memória da aba: avisa a interface para reler o estado.
       if (typeof BroadcastChannel === 'function') new BroadcastChannel('luan-os-state').postMessage({type: 'state-changed'});
+      // Sem BroadcastChannel, o evento de foco também faz a interface reler o estado.
+      root.dispatchEvent(new Event('focus'));
       toast('Demo recomeçada.');
     });
   });

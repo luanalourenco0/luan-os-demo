@@ -20,9 +20,13 @@
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
   }
+  // Os exemplos ficam presos ao dia em que a demo começou (seeded_for) e só mudam com "Recomeçar a demo".
+  const anchorDay = () => loadStore().seeded_for || today();
   // O painel real atualiza às 07h e às 19h; a captura fictícia segue o mesmo ritmo.
+  // Em dias seguintes ao início, a última captura fica sendo a das 19h do dia âncora (e a interface a mostra como antiga).
   function captureStamp() {
-    const {day: d, hour: h} = clock();
+    const base = anchorDay(), {day: d, hour: h} = clock();
+    if (base !== d) return base + 'T19:00:00-03:00';
     if (h >= 19) return d + 'T19:00:00-03:00';
     if (h >= 7) return d + 'T07:00:00-03:00';
     return addDays(d, -1) + 'T19:00:00-03:00';
@@ -30,7 +34,7 @@
 
   // ---------- Dados fictícios ----------
   function agenda() {
-    const t = today(), at = n => addDays(t, n);
+    const t = anchorDay(), at = n => addDays(t, n);
     const item = (id, n, time, title, kind, priority, area, detail, extra) =>
       Object.assign({id: 'demo-ag-' + id, title, date: at(n), time, kind, priority, area, detail, source: 'Google Agenda (fictício)'}, extra || {});
     return {
@@ -211,7 +215,7 @@
     // Integrações que dependem de contas reais (Google Agenda, Gmail e busca manual de vagas)
     // aparecem como "não configuradas", o mesmo estado que o LUAN OS real mostra sem credenciais.
     if (path === '/api/health' && method === 'GET') {
-      const stamp = captureStamp(), source = {status: 'current', recorded_at: stamp};
+      const stamp = captureStamp(), source = {status: anchorDay() === today() ? 'current' : 'stale', recorded_at: stamp};
       return json(200, {status: 'ok', storage: 'ok', checked_at: new Date().toISOString(), snapshots: {agenda: source, updates: source, jobs: source}});
     }
     if (path === '/api/gmail/status' && method === 'GET') return json(200, GMAIL_OFF);
@@ -286,10 +290,11 @@
     ['Tarefas e conclusões já são sincronizadas entre dispositivos quando o painel está online.', 'Na demonstração, tarefas e conclusões ficam salvas só neste navegador.'],
     ['Dados sincronizados entre dispositivos.', 'Dados salvos neste navegador (demonstração).'],
     ['A conta autenticada determina seus dados e o acesso ao sistema.', 'Na demonstração não há conta: o perfil é fictício.'],
+    ['Personaliza saudação e prioridades. Não muda a conta autenticada.', 'Personaliza saudação e prioridades. Na demonstração, o perfil é fictício.'],
     ['D1: disponível', 'D1 simulado na demonstração'],
     ['D1: indisponível', 'D1 simulado na demonstração'],
   ];
-  const STATUS_ELEMENTS = '#sync-status, #core-health-status, #data-description, .setting-intro p, #configuracoes p';
+  const STATUS_ELEMENTS = '#sync-status, #core-health-status, #data-description, .setting-intro p, #settings-panel p';
   function honestText() {
     document.querySelectorAll(STATUS_ELEMENTS).forEach((el) => {
       // Só parágrafos de texto simples da própria interface; listas com títulos de tarefas ficam de fora.
@@ -304,8 +309,8 @@
     const note = document.querySelector('[data-demo-note]');
     if (!note) return;
     const parts = [];
-    if (memoryOnly) parts.push('Seu navegador bloqueou o armazenamento: as mudanças valem só enquanto esta aba estiver aberta.');
-    if (staleExamples) parts.push('Os exemplos são de alguns dias atrás; use "Recomeçar a demo" para atualizar as datas.');
+    if (memoryOnly) parts.push('Seu navegador bloqueou o armazenamento: as mudanças se perdem ao recarregar ou fechar a página.');
+    if (staleExamples) parts.push('Os exemplos são de alguns dias atrás. "Recomeçar a demo" traz datas novas, mas apaga o que você mudou.');
     note.textContent = parts.join(' ');
     note.hidden = !parts.length;
   }
@@ -342,7 +347,7 @@
     bar.setAttribute('role', 'region');
     bar.setAttribute('aria-label', 'Aviso de demonstração');
     bar.innerHTML = '<span>Demonstração do LUAN OS com dados fictícios. A Marina não existe e o que você mudar fica só neste navegador.</span>'
-      + '<span data-demo-note hidden></span>'
+      + '<span data-demo-note role="status" hidden></span>'
       + '<button type="button" data-demo-reset>Recomeçar a demo</button>'
       + '<a href="' + PORTFOLIO + '">Voltar ao portfólio</a>';
     // A interface rola até a seção "Hoje" ao abrir; a faixa fica no topo dela para ser vista logo.
@@ -350,6 +355,10 @@
     if (host) { bar.classList.add('demo-bar--inline'); host.prepend(bar); } else document.body.prepend(bar);
     updateBarNote();
     bar.querySelector('[data-demo-reset]').addEventListener('click', async () => {
+      // Só pergunta quando há algo a perder: o estado atual difere dos exemplos iniciais.
+      const D = root.LuanLocalData, current = loadStore().data;
+      const untouched = D.fingerprint(current) === D.fingerprint(seedState());
+      if (!untouched && !root.confirm('Recomeçar a demo volta aos exemplos iniciais e apaga as tarefas e mudanças feitas aqui. Continuar?')) return;
       await resetDemo();
       if (!memoryOnly) { location.reload(); return; }
       // Sem armazenamento, recarregar apagaria a memória da aba: avisa a interface para reler o estado.

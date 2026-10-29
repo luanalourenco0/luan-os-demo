@@ -126,19 +126,25 @@
   let memory = null;
   let memoryOnly = false;
   const fresh = value => value && Number.isSafeInteger(value.revision) && value.seeded_for >= addDays(today(), -3);
+  function goMemoryOnly() {
+    if (memoryOnly) return;
+    memoryOnly = true;
+    // Avisa uma vez: a gravação foi aceita, mas some ao fechar a aba.
+    setTimeout(() => toast('O navegador bloqueou o armazenamento: suas mudanças valem só enquanto esta aba estiver aberta.'), 0);
+  }
   function readStorage() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (err) {
-      memoryOnly = true;
+      goMemoryOnly();
       return null;
     }
   }
   function saveStore(value) {
     memory = value;
     if (memoryOnly) return;
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(value)); } catch (err) { memoryOnly = true; }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(value)); } catch (err) { goMemoryOnly(); }
   }
   function loadStore() {
     let stored = null;
@@ -150,10 +156,25 @@
     }
     if (!stored) stored = memory;
     if (fresh(stored)) return stored;
-    // Recomeça com datas novas, mas a revisão só sobe: abas abertas nunca veem a revisão voltar.
-    const seeded = {revision: (stored && Number.isSafeInteger(stored.revision) ? stored.revision : 0) + 1, seeded_for: today(), data: seedState()};
+    // Renova as datas dos exemplos, mas a revisão só sobe (abas abertas nunca veem a revisão voltar)
+    // e o que o visitante criou, concluiu ou excluiu continua lá.
+    const seeded = {revision: (stored && Number.isSafeInteger(stored.revision) ? stored.revision : 0) + 1, seeded_for: today(), data: renewExamples(stored && stored.data)};
     saveStore(seeded);
     return seeded;
+  }
+  function renewExamples(previous) {
+    const examples = seedState();
+    if (!previous) return examples;
+    const mine = id => typeof id === 'string' && !id.startsWith('demo-');
+    try {
+      return root.LuanLocalData.validateState({
+        tasks: examples.tasks.concat((previous.tasks || []).filter(t => mine(t.id))),
+        done: (previous.done || []).filter(mine),
+        deleted: (previous.deleted || []).filter(mine),
+      });
+    } catch (err) {
+      return examples;
+    }
   }
   // Ler, comparar e gravar como uma operação só, também entre abas, quando o navegador suporta.
   // Sem Web Locks (navegadores antigos), a demo segue funcionando sem essa garantia entre abas.
@@ -214,7 +235,9 @@
   const GMAIL_OFF = {configured: false, connected: false, reauthorization_required: false};
   const CALENDAR_OFF = {
     revision: 1, configured: false, available: false, busy: false,
-    settings: {enabled: false}, cursor: {}, counts: {synced: 0, pending: 0, error: 0, conflict: 0, detached: 0},
+    // Todos os campos que o formulário de Configurações lê, com os valores padrão desligados.
+    settings: {enabled: false, calendar_id: '', default_mode: 'off', untimed: 'skip', completed: 'keep', removal: 'keep', duration_minutes: 60},
+    cursor: {}, counts: {synced: 0, pending: 0, error: 0, conflict: 0, detached: 0},
     entries: [], warnings: [],
   };
 
@@ -264,9 +287,35 @@
     }
   }, true);
 
+  // Frases da interface real que não valem na demo: aqui não há sincronização entre
+  // dispositivos nem banco D1, só o armazenamento deste navegador.
+  const DEMO_TEXT = [
+    ['usam o mesmo Core em todos os dispositivos.', 'ficam salvos só neste navegador, nesta demonstração.'],
+    ['Tarefas e conclusões já são sincronizadas entre dispositivos quando o painel está online.', 'Na demonstração, tarefas e conclusões ficam salvas só neste navegador.'],
+    ['Dados sincronizados entre dispositivos.', 'Dados salvos neste navegador (demonstração).'],
+    ['D1: disponível', 'D1 simulado na demonstração'],
+    ['D1: indisponível', 'D1 simulado na demonstração'],
+  ];
+  function honestText(scope) {
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      let text = node.nodeValue;
+      for (const [from, to] of DEMO_TEXT) if (text.includes(from)) text = text.split(from).join(to);
+      if (text !== node.nodeValue) node.nodeValue = text;
+    }
+  }
+  function markTitle() {
+    if (!document.title.includes('demonstração')) document.title = document.title + ' (demonstração)';
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     neutralize(document);
-    new MutationObserver(() => neutralize(document.body)).observe(document.body, {childList: true, subtree: true});
+    honestText(document.body);
+    // As substituições não recriam os textos procurados, então o observador não entra em ciclo.
+    new MutationObserver(() => { neutralize(document.body); honestText(document.body); markTitle(); })
+      .observe(document.body, {childList: true, subtree: true, characterData: true});
+    new MutationObserver(markTitle).observe(document.head, {childList: true, subtree: true, characterData: true});
+    markTitle();
 
     const style = document.createElement('style');
     // A faixa fica no fluxo da página (não fixa) para não cobrir o link de salto nem os cabeçalhos fixos.

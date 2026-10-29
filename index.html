@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#f5f6fa">
+  <meta name="description" content="Sua agenda, prioridades, atualizações e oportunidades em um painel pessoal.">
+  <title>LUAN OS: demonstração</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%234f46e5%27/%3E%3Cpath d=%27M17 18h12a14 14 0 0 1 0 28H17z%27 fill=%27none%27 stroke=%27white%27 stroke-width=%275%27/%3E%3Cpath d=%27M39 20h8M39 32h8M39 44h8%27 stroke=%27white%27 stroke-width=%274%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./validators.js" defer></script>
+  <script src="./demo-api.js" defer></script>
+  <script src="./local-data.js" defer></script>
+  <script src="./cloud-data.js" defer></script>
+  <script src="./planning.js" defer></script>
+  <script src="./panel-service.js" defer></script>
+  <script src="./profile.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#agenda">Ir para a agenda</a>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#visao" aria-label="Dashboard Diário, início"><span class="brand-mark" aria-hidden="true">D<span class="mark-dot">.</span></span><div><strong data-product-name>Dashboard Diário</strong><small>Seu espaço pessoal</small></div></a>
+      <div class="side-label">SEU PAINEL</div>
+      <a class="nav-item active" href="#visao" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Visão geral</a>
+      <a class="nav-item" href="#agenda"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg> Agenda</a>
+      <a class="nav-item" href="#prioridades"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4m0 0c5-4 9 4 14 0v10c-5 4-9-4-14 0"/></svg> Prioridades</a>
+      <a class="nav-item" href="#atualizacoes"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg> Atualizações</a>
+      <a class="nav-item" href="#vagas"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3 12c6 4 12 4 18 0M12 12v4"/></svg> Vagas</a>
+      <div class="sidebar-profile"><span class="profile-avatar" data-profile-initials aria-label="Seu perfil"></span><div><strong data-profile-name>Seu perfil</strong><small data-profile-label>Perfil pessoal</small></div></div><div class="side-bottom">Agenda, foco e oportunidades<br><small>Um dia de cada vez.</small></div>
+    </aside>
+
+    <main id="visao" class="main">
+      <header class="topbar"><div class="breadcrumb"><strong data-product-name>Dashboard Diário</strong><span>Visão geral</span></div><div class="topbar-right"><div class="account-summary"><strong data-profile-name>Seu perfil</strong><small data-profile-label>Perfil pessoal</small></div><span class="avatar" data-profile-initials aria-label="Seu perfil"></span></div></header>
+      <div class="content">
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy"><div class="eyebrow" id="today-label"></div><h1 id="hero-title">Seu dia<span class="accent">.</span></h1><p>Agenda, prioridades e próximos passos.</p></div>
+          <div class="hero-tools"><button id="quick-add-button" type="button" class="primary-button"><span aria-hidden="true">＋</span> Nova tarefa</button><div class="snapshot" title="O painel verifica uma nova captura enquanto estiver aberto"><span class="snapshot-icon">↻</span><div><strong id="snapshot-title">Aguardando dados da agenda</strong><small id="snapshot-subtitle">Carregando atualização…</small></div></div></div>
+        </section>
+
+        <section class="metric-grid" aria-label="Resumo de prazos">
+          <button class="metric selected" data-horizon="today"><div class="metric-top"><span class="metric-icon coral">◷</span></div><strong id="metric-today">0</strong><span>Para hoje</span><small>Compromissos e tarefas</small></button>
+          <button class="metric" data-horizon="week"><div class="metric-top"><span class="metric-icon gold">▦</span></div><strong id="metric-week">0</strong><span>Próximos 7 dias</span><small>Inclui hoje</small></button>
+          <button class="metric" data-horizon="later"><div class="metric-top"><span class="metric-icon blue">◎</span></div><strong id="metric-later">0</strong><span>Mais à frente</span><small id="metric-later-caption">Até 8 de outubro</small></button>
+        </section>
+
+        <div id="freshness-notice" class="freshness-notice" role="status" aria-live="polite" hidden></div>
+        <section class="daily-focus" aria-labelledby="daily-focus-title">
+          <div class="daily-focus-heading"><div><div class="overline">SEU FOCO</div><h2 id="daily-focus-title">Aguardando o foco</h2></div><span id="daily-focus-state" class="focus-state">Carregando…</span></div>
+          <p id="daily-focus-action">Carregando a próxima ação registrada no briefing.</p>
+          <div id="daily-focus-date" class="daily-focus-date"></div>
+        </section>
+
+        <section id="prioridades" class="focus-card" aria-labelledby="focus-title">
+          <div class="focus-heading"><div><div class="focus-top"><span class="focus-spark" aria-hidden="true">◷</span><span>PRÓXIMOS PRAZOS</span></div><h2 id="focus-title">O que vem primeiro</h2></div><p id="focus-intro">Avaliações e entregas que pedem atenção.</p></div>
+          <div id="focus-steps"></div>
+        </section>
+
+
+
+        <div class="main-grid">
+          <section id="agenda" class="agenda-panel" aria-labelledby="agenda-title">
+            <div class="section-heading"><div><div class="overline">ORGANIZE SEU TEMPO</div><h2 id="agenda-title">Agenda e estudos</h2></div><div class="view-switch" role="group" aria-label="Visualização"><button type="button" data-view="day" class="on" aria-pressed="true">Dia</button><button type="button" data-view="week" aria-pressed="false">Semana</button></div></div>
+            <div class="filters"><label>Área <select id="area-filter"><option value="all">Todas</option><option value="faculdade">Faculdade</option><option value="carreira">Carreira</option><option value="conteudo">Conteúdo</option><option value="saude">Saúde</option><option value="desenvolvimento">Desenvolvimento</option><option value="pessoal">Pessoal</option></select></label><label>Prioridade <select id="priority-filter"><option value="all">Todas</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label><label class="done-label"><input type="checkbox" id="show-done"> Mostrar concluídos</label></div>
+            <div class="date-control"><button id="prev" aria-label="Dia ou semana anterior">‹</button><div><strong id="range-title"></strong><small id="range-caption"></small></div><button id="next" aria-label="Próximo dia ou semana">›</button><button class="today-button" id="go-today">Hoje</button></div>
+            <p id="storage-alert" class="storage-alert" role="alert" hidden></p>
+            <p id="action-status" class="action-status" role="status" aria-live="polite" aria-atomic="true"></p>
+            <p id="sync-status" class="action-status" role="status">Carregando seus dados…</p>
+            <div id="week-overview" class="week-overview" role="group" aria-label="Resumo de sete dias. Selecione um dia para ver os detalhes." hidden></div>
+            <p id="week-help" class="week-help" hidden>Contagens conforme os filtros. Horários indicam apenas os registros conhecidos; não representam duração ou disponibilidade.</p>
+            <div id="event-list" tabindex="-1" aria-label="Compromissos e tarefas" aria-live="polite"></div>
+            <div class="panel-footer"><button id="add-button" type="button" class="text-button">＋ Adicionar tarefa</button><button id="data-button" type="button" class="text-button">Exportar / importar dados</button></div>
+          </section>
+
+          <aside class="right-column">
+            <section class="priority-card" aria-labelledby="profile-priorities-title"><div class="card-heading"><h3 id="profile-priorities-title">Suas frentes</h3><span>PRIORIDADES</span></div><div id="profile-priorities"></div></section>
+            <section id="atualizacoes" class="updates-card" aria-labelledby="updates-title">
+              <div class="updates-heading"><div><div class="overline">ACOMPANHE SUAS FRENTES</div><h3 id="updates-title">Atualizações</h3></div><span id="updates-stamp" class="updates-stamp">Carregando…</span></div>
+              <div id="updates-list" class="updates-list" aria-live="polite"></div>
+              <p class="updates-footnote">Resumos das suas frentes, com a data de cada registro.</p>
+            </section>
+          </aside>
+        </div>
+        <section id="vagas" class="jobs-panel" aria-labelledby="jobs-title">
+          <div class="jobs-heading"><div><div class="overline">OPORTUNIDADES SELECIONADAS</div><h2 id="jobs-title">Vagas para acompanhar</h2><p>Compatibilidade estimada a partir do perfil. Confira cada anúncio antes de decidir.</p></div><button id="jobs-retry" class="text-button" type="button">Atualizar vagas</button></div>
+          <div class="jobs-meta"><span id="jobs-stamp">Carregando vagas…</span><span id="jobs-state" class="jobs-state" role="status" aria-live="polite"></span></div>
+          <div id="jobs-list" class="jobs-list" aria-live="polite"><p class="jobs-empty">Carregando oportunidades…</p></div>
+
+          <p class="jobs-footnote">A disponibilidade e os requisitos podem mudar. Confirme-os na página da vaga antes de se candidatar.</p>
+        </section>
+        <footer><strong data-product-name>Dashboard Diário</strong><span id="data-status">Verificando agenda atualizada…</span><span>Datas e horários em America/Sao_Paulo. <span id="profile-footer-note"></span></span></footer>
+      </div>
+    </main>
+  </div>
+  <nav class="mobile-nav" aria-label="Navegação do painel">
+    <a href="#visao" class="mobile-nav-item active" aria-current="location"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Início</a>
+    <a href="#agenda" class="mobile-nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg>Agenda</a>
+    <a href="#prioridades" class="mobile-nav-item" aria-label="Prioridades"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4m0 0c5-4 9 4 14 0v10c-5 4-9-4-14 0"/></svg>Prazos</a>
+    <a href="#atualizacoes" class="mobile-nav-item" aria-label="Atualizações"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>Resumos</a>
+    <a href="#vagas" class="mobile-nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3 12c6 4 12 4 18 0M12 12v4"/></svg>Vagas</a>
+  </nav>
+  <dialog id="task-dialog" aria-labelledby="task-dialog-title"><form id="task-form" method="dialog"><div class="dialog-head"><div><div class="overline">TAREFA DO PAINEL</div><h2 id="task-dialog-title">Nova tarefa</h2></div><button id="close-dialog" type="button" aria-label="Fechar">×</button></div><label>Título<input name="title" required maxlength="100" placeholder="O que você precisa fazer?"></label><div class="dialog-row"><label>Data<input name="date" required type="date"></label><label>Hora <span>(opcional)</span><input name="time" type="time"></label></div><div class="dialog-row"><label>Área<select name="area"><option value="faculdade">Faculdade</option><option value="carreira">Carreira</option><option value="conteudo">Conteúdo</option><option value="saude">Saúde</option><option value="desenvolvimento">Desenvolvimento</option><option value="pessoal">Pessoal</option></select></label><label>Prioridade<select name="priority"><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label></div><p id="task-storage-alert" class="storage-alert" role="alert" hidden></p><div class="dialog-actions"><button type="button" id="cancel-dialog">Cancelar</button><button id="task-submit" type="submit">Adicionar tarefa</button></div></form></dialog>
+  <dialog id="delete-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-description">
+    <h2 id="delete-dialog-title">Excluir tarefa?</h2>
+    <p id="delete-task-title"></p>
+    <p id="delete-description">A tarefa e sua marcação de conclusão serão removidas. Backups antigos pedirão confirmação antes de recriá-la.</p>
+    <p id="delete-storage-alert" class="storage-alert" role="alert" hidden></p>
+    <div class="dialog-actions"><button id="cancel-delete" type="button">Cancelar</button><button id="confirm-delete" class="danger-button" type="button">Excluir tarefa</button></div>
+  </dialog>
+  <dialog id="data-dialog" aria-labelledby="data-dialog-title" aria-describedby="data-description">
+    <div class="dialog-head"><h2 id="data-dialog-title">Seus dados em outro dispositivo</h2><button id="close-data" type="button" aria-label="Fechar dados">×</button></div>
+    <p id="data-description">Tarefas e conclusões são sincronizadas entre dispositivos quando o painel está online. Use o arquivo para guardar um backup ou transferir dados de outro ambiente.</p>
+    <p>O arquivo pode conter informações pessoais. Guarde-o em um local privado. A agenda e os resumos publicados não entram neste backup.</p>
+    <button id="export-data" class="primary-button" type="button">Exportar backup JSON</button>
+    <section id="legacy-data" hidden><h3>Dados antigos deste navegador</h3><p>Seus dados anteriores continuam preservados. Revise a mesclagem antes de adicioná-los ao painel sincronizado.</p><button id="import-legacy" class="primary-button" type="button">Revisar dados antigos</button><button id="export-legacy" class="text-button" type="button">Exportar dados antigos</button></section>
+    <label class="import-label" for="import-file">Importar backup do painel (até 2 MB)</label>
+    <input id="import-file" type="file" accept="application/json,.json" aria-describedby="import-help">
+    <p id="import-help">Os dados serão mesclados. Conflitos exigem sua escolha; tarefas ausentes no arquivo serão mantidas.</p>
+    <p id="data-storage-alert" class="storage-alert" role="alert" hidden></p>
+    <section id="import-preview" aria-label="Revisar importação" hidden>
+      <p id="import-summary" role="status"></p><div id="import-conflicts"></div>
+      <div class="dialog-actions"><button id="cancel-import" type="button">Cancelar importação</button><button id="apply-import" class="primary-button" type="button" disabled>Confirmar importação</button></div>
+    </section>
+  </dialog>
+</body>
+</html>

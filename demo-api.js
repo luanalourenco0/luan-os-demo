@@ -141,19 +141,29 @@
     try { localStorage.setItem(STORE_KEY, JSON.stringify(value)); } catch (err) { memoryOnly = true; }
   }
   function loadStore() {
-    const stored = memoryOnly ? memory : readStorage() || memory;
+    let stored = null;
+    if (!memoryOnly) {
+      stored = readStorage();
+      // Todo estado lido com sucesso fica espelhado na memória; se a leitura falhar depois,
+      // a aba continua da última revisão confirmada em vez de recomeçar do zero.
+      if (stored) memory = stored;
+    }
+    if (!stored) stored = memory;
     if (fresh(stored)) return stored;
     // Recomeça com datas novas, mas a revisão só sobe: abas abertas nunca veem a revisão voltar.
     const seeded = {revision: (stored && Number.isSafeInteger(stored.revision) ? stored.revision : 0) + 1, seeded_for: today(), data: seedState()};
     saveStore(seeded);
     return seeded;
   }
-  function resetDemo() {
-    const current = loadStore();
-    saveStore({revision: current.revision + 1, seeded_for: today(), data: seedState()});
-  }
   // Ler, comparar e gravar como uma operação só, também entre abas, quando o navegador suporta.
+  // Sem Web Locks (navegadores antigos), a demo segue funcionando sem essa garantia entre abas.
   const exclusive = fn => (navigator.locks && navigator.locks.request) ? navigator.locks.request(STORE_KEY, fn) : fn();
+  function resetDemo() {
+    return exclusive(async () => {
+      const current = loadStore();
+      saveStore({revision: current.revision + 1, seeded_for: today(), data: seedState()});
+    });
+  }
 
   // ---------- Rotas simuladas ----------
   const json = (status, body) => new Response(JSON.stringify(body), {status, headers: {'Content-Type': 'application/json'}});
@@ -221,7 +231,9 @@
       a.setAttribute('href', '#');
       a.removeAttribute('target');
       a.dataset.demoJob = 'true';
-      a.setAttribute('aria-label', (a.textContent.trim() || 'Vaga') + ' (vaga fictícia)');
+      // Mantém o título da vaga no rótulo acessível; só troca o "em nova aba" pelo aviso.
+      const label = (a.getAttribute('aria-label') || a.textContent.trim() || 'Vaga').replace(/\s*em nova aba\s*$/i, '');
+      a.setAttribute('aria-label', label + ' (vaga fictícia)');
     });
   }
   document.addEventListener('click', (event) => {
@@ -258,6 +270,12 @@
       + '<button type="button" data-demo-reset>Recomeçar a demo</button>'
       + '<a href="' + PORTFOLIO + '">Voltar ao portfólio</a>';
     document.body.prepend(bar);
-    bar.querySelector('[data-demo-reset]').addEventListener('click', () => { resetDemo(); location.reload(); });
+    bar.querySelector('[data-demo-reset]').addEventListener('click', async () => {
+      await resetDemo();
+      if (!memoryOnly) { location.reload(); return; }
+      // Sem armazenamento, recarregar apagaria a memória da aba: avisa a interface para reler o estado.
+      if (typeof BroadcastChannel === 'function') new BroadcastChannel('luan-os-state').postMessage({type: 'state-changed'});
+      toast('Demo recomeçada.');
+    });
   });
 })(globalThis);

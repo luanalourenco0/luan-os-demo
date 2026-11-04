@@ -37,6 +37,20 @@
     </aside>
 
     <main id="visao" class="main" tabindex="-1">
+      <div class="lunar-scene" aria-hidden="true">
+        <div class="lunar-stars"></div>
+        <svg class="lunar-moon" viewBox="0 0 100 100" focusable="false"><path d="M64 8A43 43 0 1 0 90 72A36 36 0 0 1 64 8Z"/></svg>
+        <svg class="lunar-hills" viewBox="0 0 1000 300" preserveAspectRatio="none" focusable="false">
+          <defs>
+            <pattern id="lunar-dots-far" width="7" height="7" patternUnits="userSpaceOnUse"><rect class="hill-far" width="7" height="7"/><circle class="hill-dot" cx="3.5" cy="3.5" r="1.3"/></pattern>
+            <pattern id="lunar-dots-mid" width="7" height="7" patternUnits="userSpaceOnUse"><rect class="hill-mid" width="7" height="7"/><circle class="hill-dot" cx="3.5" cy="3.5" r="1.4"/></pattern>
+            <pattern id="lunar-dots-near" width="6" height="6" patternUnits="userSpaceOnUse"><rect class="hill-near" width="6" height="6"/><circle class="hill-dot" cx="3" cy="3" r="1.2"/></pattern>
+          </defs>
+          <path fill="url(#lunar-dots-far)" d="M0 86C140 8 262 4 384 52S566 110 664 94S870 28 1000 58V300H0Z"/>
+          <path fill="url(#lunar-dots-mid)" d="M0 165C104 124 222 106 334 132S522 185 642 166S880 104 1000 126V300H0Z"/>
+          <path fill="url(#lunar-dots-near)" d="M0 240C152 202 300 212 424 232S700 208 822 202S960 206 1000 218V300H0Z"/>
+        </svg>
+      </div>
       <header class="topbar">
         <a class="brand" href="#hoje" aria-label="LUAN OS, início"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M13.12 3.32A13 13 0 1 0 28.68 18.88A11 11 0 0 1 13.12 3.32Z" fill="currentColor"/></svg><span data-product-name>LUAN OS</span></a>
         <span id="module-breadcrumb" class="topbar-module">Hoje</span>
@@ -52,12 +66,14 @@
             <p id="module-description" class="masthead-lede">O que preciso saber e fazer hoje?</p>
           </div>
           <div class="masthead-tools">
+            <div id="week-progress" class="lunar-week-progress" aria-live="polite"><div><span>7 dias</span><strong id="week-progress-text">Carregando…</strong></div><progress id="week-progress-bar" max="100" value="0" aria-label="Progresso dos itens conhecidos nos próximos sete dias"></progress><small id="week-progress-note"></small></div>
             <div id="day-progress" class="day-progress" hidden>
               <svg class="ring" viewBox="0 0 64 64" role="img" aria-labelledby="day-progress-text"><circle class="ring-track" cx="32" cy="32" r="26" pathLength="100"></circle><circle id="day-progress-ring" class="ring-value" cx="32" cy="32" r="26" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 32 32)"></circle><text id="day-progress-pct" x="32" y="37.5" text-anchor="middle">0%</text></svg>
               <div><strong id="day-progress-text"></strong><small>Progresso de hoje</small></div>
             </div>
             <button id="quick-add-button" type="button" class="button primary" aria-keyshortcuts="N"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova tarefa<kbd aria-hidden="true">N</kbd></button>
           </div>
+          <div class="lunar-line-head home-only"><h2>Linha do dia</h2><div id="lunar-filters" class="lunar-filters" role="group" aria-label="Filtrar linha do dia por área"><button type="button" data-lunar-area="all" aria-pressed="true">Tudo</button><button type="button" data-lunar-area="faculdade" aria-pressed="false">Faculdade</button><button type="button" data-lunar-area="carreira" aria-pressed="false">Carreira</button><button type="button" data-lunar-area="pessoal" aria-pressed="false">Pessoal</button></div></div>
           <div id="day-line" class="day-line" hidden></div>
         </section>
 
@@ -70,6 +86,22 @@
           <p id="overdue-notice" hidden></p>
           <div id="freshness-notice" role="status" aria-live="polite" hidden></div>
         </div>
+
+        <section id="vagas" class="jobs" aria-labelledby="jobs-title">
+          <div class="jobs-head">
+            <h2 id="jobs-title">Radar de vagas</h2>
+            <div class="jobs-actions"><button id="jobs-retry" class="button ghost small" type="button" aria-describedby="jobs-retry-help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></svg><span class="jobs-retry-label">Buscar novas vagas</span></button><button id="jobs-reload" class="icon-button" type="button" aria-label="Reler vagas salvas" title="Reler vagas salvas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg></button></div>
+            <span id="jobs-retry-help" class="sr-only">A busca consulta alertas do Gmail apenas quando você clicar. Reler exibe a captura salva.</span>
+            <p class="jobs-recent-intro">Busque os alertas recentes do Gmail. As oportunidades a confirmar aparecem primeiro; as vagas salvas ficam separadas abaixo.</p>
+            <p id="jobs-search-status" class="jobs-search-status" role="status" aria-live="polite"></p>
+            <div id="jobs-gmail-consent" class="jobs-gmail-consent" hidden><p>Gmail somente leitura: o consentimento permite ler toda a caixa de e-mail. Esta busca limita a consulta aos alertas de vagas do LinkedIn.</p><button id="jobs-gmail-authorize" class="button secondary small" type="button" hidden>Autorizar Gmail</button></div>
+          </div>
+          <p id="jobs-consultation" class="jobs-meta" role="status" aria-live="polite">Carregando o histórico de consultas…</p>
+          <section id="jobs-pending" class="jobs-pending" aria-labelledby="jobs-pending-title" hidden><h3 id="jobs-pending-title">Alertas recentes do Gmail · A confirmar</h3><p id="jobs-pending-stamp"></p><p>Encontrados nesta consulta. O recebimento do alerta não comprova vaga ativa: confirme disponibilidade e requisitos na página oficial.</p><div id="jobs-pending-list" class="jobs-list"></div></section>
+          <details id="jobs-disclosure" class="disclosure jobs-saved" open><summary title="Expandir ou recolher vagas salvas"><span id="jobs-saved-label">Vagas salvas anteriormente</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><p class="jobs-meta"><span id="jobs-stamp">Carregando vagas…</span><span id="jobs-state" class="jobs-state" role="status" aria-live="polite"></span><span>Registro de uma captura anterior. A disponibilidade pode ter mudado; confira a fonte antes de decidir ou se candidatar.</span></p><div id="jobs-list" class="jobs-list" aria-busy="true"><p class="jobs-empty">Carregando oportunidades…</p></div></details>
+        </section>
+
+        <form id="lunar-capture" class="lunar-capture"><label for="lunar-capture-input">Captura rápida</label><div class="lunar-capture-row"><textarea id="lunar-capture-input" rows="2" maxlength="100" placeholder="Uma tarefa… ou / para atalhos" autocomplete="off" aria-describedby="lunar-capture-help" aria-haspopup="menu" aria-expanded="false" aria-controls="lunar-shortcuts"></textarea><button type="submit" class="button primary capture-submit" aria-label="Salvar captura">↑</button></div><small id="lunar-capture-help">#área · Enter salva · Shift+Enter quebra linha</small><div id="lunar-shortcuts" class="lunar-shortcuts" role="menu" aria-label="Comandos e áreas existentes" hidden></div></form>
 
         <div id="shared-workspace" class="workspace has-aside">
           <div id="primary" class="workspace-main">
@@ -129,19 +161,6 @@
             </section>
           </aside>
         </div>
-
-        <section id="vagas" class="jobs" aria-labelledby="jobs-title">
-          <div class="jobs-head">
-            <div><h2 id="jobs-title">Radar de vagas</h2><p>Compatibilidade estimada a partir do perfil. Confira cada anúncio antes de decidir.</p></div>
-            <div class="jobs-actions"><button id="jobs-retry" class="button secondary small" type="button" aria-describedby="jobs-retry-help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Buscar novas vagas</button><button id="jobs-reload" class="button secondary small" type="button">Reler vagas salvas</button><span id="jobs-retry-help" class="jobs-retry-help">A busca consulta alertas do Gmail apenas quando você clicar. Reler exibe a captura salva.</span></div>
-            <p id="jobs-search-status" class="jobs-search-status" role="status" aria-live="polite"></p>
-            <div id="jobs-gmail-consent" class="jobs-gmail-consent" hidden><p>Gmail somente leitura: o consentimento permite ler toda a caixa de e-mail. Esta busca limita a consulta aos alertas de vagas do LinkedIn.</p><button id="jobs-gmail-authorize" class="button secondary small" type="button" hidden>Autorizar Gmail</button></div>
-          </div>
-          <div class="jobs-meta"><span id="jobs-stamp">Carregando vagas…</span><span id="jobs-state" class="jobs-state" role="status" aria-live="polite"></span></div>
-          <details id="jobs-disclosure" class="disclosure"><summary>Explorar oportunidades<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div id="jobs-list" class="jobs-list"><p class="jobs-empty">Carregando oportunidades…</p></div></details>
-          <section id="jobs-pending" class="jobs-pending" aria-labelledby="jobs-pending-title" hidden><h3 id="jobs-pending-title">Confirmação oficial pendente</h3><p>Encontradas nos alertas. A disponibilidade e os requisitos ainda precisam de confirmação na página oficial.</p><div id="jobs-pending-list" class="jobs-list"></div></section>
-          <p class="jobs-footnote">A disponibilidade e os requisitos podem mudar. Confirme-os na página da vaga antes de se candidatar.</p>
-        </section>
 
         <section id="agents-panel" class="panel-page" hidden aria-labelledby="agents-title">
           <h2 id="agents-title" class="sr-only">Agentes e Automações</h2>
@@ -229,6 +248,7 @@
             <div id="source-chips" class="source-chips" role="group" aria-label="Estado das fontes"></div>
           </div>
         </details>
+        <div class="lunar-background-control" role="group" aria-label="Fundo"><span>Fundo</span><button type="button" data-background="night" aria-pressed="true">Noite</button><button type="button" data-background="dots" aria-pressed="false">Pontos</button><button type="button" data-background="plain" aria-pressed="false">Liso</button></div>
         <footer class="footer"><strong data-product-name>LUAN OS</strong><span id="data-status">Verificando agenda atualizada…</span><span>Datas e horários em America/Sao_Paulo. <span id="profile-footer-note"></span></span><button id="data-button" type="button" class="button ghost small">Backup e importação</button></footer>
       </div>
     </main>
@@ -242,6 +262,8 @@
   </nav>
   <button id="fab-add" type="button" class="fab" aria-label="Nova tarefa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
   <p id="action-status" class="toast" role="status" aria-live="polite" aria-atomic="true"></p>
+
+  <dialog id="lunar-job-dialog" class="dialog lunar-job-dialog" aria-labelledby="lunar-job-title"><div class="dialog-scroll"><div class="dialog-head"><p id="lunar-job-source"></p><button id="lunar-job-close" type="button" class="icon-button" aria-label="Fechar detalhes da vaga">×</button></div><h2 id="lunar-job-title"></h2><p id="lunar-job-company"></p><dl class="lunar-job-stats"><div><dt>Aderência</dt><dd id="lunar-job-fit"></dd></div><div><dt>Modelo</dt><dd>A confirmar</dd></div><div><dt>Prazo</dt><dd>A confirmar</dd></div></dl><h3>Por que entrou na shortlist</h3><p id="lunar-job-reason" class="lunar-job-check"></p><h3>Requisitos a confirmar</h3><p class="lunar-job-question">Requisitos detalhados não constam nesta captura. Confira-os no anúncio da vaga.</p><p id="lunar-job-alert" class="module-limit"></p><div class="lunar-job-actions"><a id="lunar-job-link" class="button primary" target="_blank" rel="noopener noreferrer">Abrir vaga na fonte</a><button id="lunar-job-task" class="button secondary" type="button">Virar tarefa</button></div></div></dialog>
 
   <dialog id="nav-sheet" class="dialog" aria-labelledby="nav-sheet-title">
     <div class="dialog-scroll">

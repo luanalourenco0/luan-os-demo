@@ -5,6 +5,7 @@ const ZONE=P.ZONE;
 const M=globalThis.LuanModules;
 const automationPlan=globalThis.LuanAutomationPlan;
 let jobsRead=null;
+let jobActivity=null,consultationRead=null,consultationAttempt=0,consultationVersion=0,consultationFailed=false;
 const D=globalThis.LuanLocalData;
 const KEY=D.KEY;
 const AREA_NAMES = {faculdade:'Faculdade',carreira:'Carreira',conteudo:'Conteúdo',saude:'Saúde',desenvolvimento:'Desenvolvimento',pessoal:'Pessoal'};
@@ -43,6 +44,7 @@ const app={module:'hoje',view:'day',start:today,horizon:'today',area:'all',prior
 // Presentation-only memory of this page: which rows and summaries are open. Never persisted.
 const expanded=new Set(),openStreams=new Set();
 let filtersOpen=false;
+let dayLineArea=null,recentTaskId=null,captureDraft=false;
 const $=s=>document.querySelector(s);
 const html=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const reducedMotion=()=>!!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -117,7 +119,7 @@ function renderFreshness(){
     const captured=viewData.jobs.captured_at,future=P.freshness(captured)==='future',old=!future&&oldRecord(captured);
     if(service.failed('jobs'))add('Vagas: leitura indisponível. A última captura válida desta sessão, de '+updateDate(captured)+', foi mantida'+(future?' (data no futuro, confira a origem).':old?' (registro com mais de 26 horas).':'.'),'error');
     else if(future)add('Vagas: a data da captura, '+updateDate(captured)+', está no futuro. Confira a origem antes de usar.');
-    else if(old)add('Vagas: registro antigo, de '+updateDate(captured)+'. Confira os alertas na origem.');
+    else if(old)add('Vagas salvas: registro antigo, de '+updateDate(captured)+'. Os alertas recentes do Gmail aparecem separadamente no radar.');
   }else if(service.failed('jobs'))add('Vagas: leitura indisponível. Nenhuma captura válida carregada nesta sessão.','error');
   const notice=$('#freshness-notice');notice.hidden=!messages.length;
   notice.innerHTML=messages.map(message=>`<p class="notice-line${message.tone==='error'?' is-error':''}">${message.tone==='error'?ICON.alert:ICON.clock}<span>${html(message.text)}</span></p>`).join('');
@@ -152,33 +154,31 @@ function renderDayProgress(all){
   $('#day-progress-ring').setAttribute('stroke-dasharray',pct+' 100');
   $('#day-progress-pct').textContent=pct+'%';
   $('#day-progress-text').textContent=done+' de '+total+' concluídos';
+  // A rolling seven-day projection of known items, independent of agenda filters.
+  const week=service.loaded?all.filter(item=>workspace.accepts(app.module,item)&&P.inRange(item,today,dAdd(today,6))):[];
+  const completed=week.filter(isDone).length;
+  $('#week-progress-text').textContent=service.loaded?week.length?completed+' de '+week.length:'Sem itens': 'Carregando…';
+  $('#week-progress-bar').value=week.length?Math.round(completed*100/week.length):0;
+  $('#week-progress-note').textContent=Array.from({length:7},(_,i)=>dAdd(today,i)).every(coveredDate)?'Itens conhecidos':'Cobertura parcial';
 }
-// The day as one line: only known HH:MM times of today, plus "now". No duration or availability is implied.
+// Known records for today. An absent time is explicit and never inferred.
 const timed=item=>!item.timeLabel&&/^\d\d:\d\d$/.test(item.time||'');
-const minutesOf=time=>Number(time.slice(0,2))*60+Number(time.slice(3,5));
 function renderDayLine(all){
   const node=$('#day-line');
   if(app.module!=='hoje'){node.hidden=true;return;}
   node.hidden=false;
-  const now=clockNow(),nowMin=minutesOf(now);
-  const todays=all.filter(item=>effective(item)===today&&filtered(item)&&timed(item)).sort(sortItems);
-  const start=Math.min(6,Math.floor(Math.min(nowMin,...todays.map(item=>minutesOf(item.time)))/180)*3),span=(24-start)*60;
-  const at=minutes=>(Math.max(0,Math.min(1,(minutes-start*60)/span))*100).toFixed(2)+'%';
-  let marks='';
-  for(let hour=start;hour<=24;hour+=3)marks+=`<text class="dl-hour" x="${at(hour*60)}" y="52" text-anchor="${hour===start?'start':hour===24?'end':'middle'}">${hour}h</text>`;
-  for(const item of todays){
-    const deadline=['deadline','exam'].includes(item.kind),cls='dl-item'+(isDone(item)?' is-done':'')+(deadline?' is-deadline':'');
-    marks+=deadline?`<svg x="${at(minutesOf(item.time))}" y="26" width="1" height="1" overflow="visible"><rect class="${cls}" x="-4.5" y="-4.5" width="9" height="9" transform="rotate(45)"></rect></svg>`:`<circle class="${cls}" cx="${at(minutesOf(item.time))}" cy="26" r="5"></circle>`;
-  }
-  const nowAt=at(nowMin),ratio=parseFloat(nowAt),anchor=ratio<8?'start':ratio>92?'end':'middle';
-  const line=`<svg aria-hidden="true" focusable="false"><line class="dl-track" x1="0" y1="26" x2="100%" y2="26"></line><line class="dl-past" x1="0" y1="26" x2="${nowAt}" y2="26"></line>${marks}<svg x="${nowAt}" y="26" width="1" height="1" overflow="visible"><circle class="dl-now" r="8"></circle><circle class="dl-now-cut" cx="3.6" cy="-3.4" r="6.4"></circle></svg><text class="dl-now-label" x="${nowAt}" y="9" text-anchor="${anchor}">Agora ${now}</text></svg>`;
-  const next=todays.find(item=>!isDone(item)&&minutesOf(item.time)>=nowMin);
-  let caption=next?`Próximo às ${next.time}: ${next.title}.`:todays.length?'Nenhum outro horário marcado para hoje.':'Sem horários marcados para hoje.';
+  const todays=all.filter(item=>effective(item)===today&&pass(item)).sort(sortItems);
+  const next=todays.find(item=>!isDone(item)&&timed(item)&&item.time>=clockNow());
+  let caption=next?`Próximo às ${next.time}: ${next.title}.`:todays.length?'Estes são os itens conhecidos de hoje.':'Nenhum item nesta seleção para hoje.';
   if(agendaLoading())caption+=' Carregando a agenda…';
   else if(service.failed('agenda')&&!viewData.agenda)caption+=' Agenda indisponível nesta sessão; aparecem só tarefas do painel.';
   else if(!coveredDate(today))caption+=' Sem cobertura da agenda para hoje; aparecem só tarefas do painel.';
-  paint(node,line+`<p class="day-line-caption">${html(caption)}</p>`);
+  const cascade=dayLineArea!==null&&dayLineArea!==app.area;dayLineArea=app.area;
+  const rows=todays.map(item=>`<div class="lunar-day-row${item.id===recentTaskId?' is-new':''}${isDone(item)?' is-done':''}" data-line-id="${html(item.id)}" data-focus-key="line:${html(item.id)}" tabindex="-1"><time>${html(item.timeLabel||item.time||'Sem hora')}</time><i data-area="${html(item.area)}" aria-hidden="true"></i><div><strong>${html(item.title)}</strong><small>${html(KIND_NAMES[item.kind]||item.kind)} · ${html(AREA_NAMES[item.area]||item.area)}${item.id===recentTaskId?' · agora mesmo':''}${isDone(item)?' · concluído':''}</small></div></div>`).join('');
+  const coverageWarning=agendaLoading()||service.failed('agenda')&&!viewData.agenda||!coveredDate(today);
+  paint(node,`<div class="lunar-day-rows${cascade?' is-filtering':''}">${rows||'<p>Nenhum item nesta seleção.</p>'}</div><p class="day-line-caption${coverageWarning?' is-coverage-warning':''}">${html(caption)}</p>`);
 }
+$('#day-line').addEventListener('animationend',e=>{if(e.animationName==='lunar-row'&&e.target.dataset?.lineId===recentTaskId)recentTaskId=null;});
 function renderWeekOverview(all){
   const enabled=app.view==='week'&&app.horizon!=='later';
   $('#week-overview').hidden=!enabled;$('#week-help').hidden=!enabled;
@@ -295,18 +295,19 @@ function renderWorkspace(){
   $('#vagas').hidden=!['hoje','carreira'].includes(module.id);
   $('#agents-panel').hidden=module.id!=='agentes';$('#settings-panel').hidden=module.id!=='configuracoes';
   if(disclosureModule!==module.id){
-    $('#jobs-disclosure').open=module.id==='carreira';
+    $('#jobs-disclosure').open=['hoje','carreira'].includes(module.id);
     $('#updates-disclosure').open=!home;
     disclosureModule=module.id;
   }
   $('#quick-add-button').hidden=module.defaultArea===null;$('#fab-add').hidden=module.defaultArea===null;
+  $('#lunar-capture').hidden=module.defaultArea===null;
   const overdue=view.overdue,notice=$('#overdue-notice');
   notice.hidden=!home||!overdue?.length;
   paint(notice,overdue?.length?`${ICON.alert}<span>${overdue.length} tarefa(s) pessoal(is) com data anterior a hoje. Confira antes de concluir ou reagendar.</span><button type="button" class="text-link" data-focus-key="overdue" data-overdue-date="${html(effective(overdue[0]))}">Ver desde ${html(dateShort(effective(overdue[0])))}</button>`:'');
 }
 function enterContent(){
   if(reducedMotion())return;
-  $('.content').animate?.([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:200,easing:'cubic-bezier(.2,.7,.2,1)'});
+  const node=$('.content');node.classList.toggle('route-enter',false);void node.offsetWidth;node.classList.toggle('route-enter',true);
 }
 function activateRoute(){
   const id=globalThis.location?.hash.slice(1)||'hoje',next=M.resolve(id).id,changed=next!==app.module;
@@ -325,13 +326,17 @@ function activateRoute(){
 }
 const moduleIconPaths={"hoje":"<path d=\"m3 10 9-7 9 7v10H3z\"/><path d=\"M9 20v-7h6v7\"/>","academico":"<path d=\"m2 9 10-5 10 5-10 5z\"/><path d=\"M6 11v6c4 3 8 3 12 0v-6M22 9v6\"/>","carreira":"<rect x=\"3\" y=\"7\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"M8 7V3h8v4M3 12h18M10 12v3h4v-3\"/>","projetos":"<path d=\"M3 5h7l2 3h9v12H3z\"/><path d=\"m8 14 3 3 5-5\"/>","financas":"<rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M3 9h18M15 13h6v4h-6zM3 5V3h14\"/>","fitness":"<path d=\"M4 7v10M7 5v14M17 5v14M20 7v10M7 12h10\"/>","agentes":"<rect x=\"5\" y=\"7\" width=\"14\" height=\"13\" rx=\"3\"/><path d=\"M12 3v4M2 12h3M19 12h3M9 16h6\"/><circle cx=\"9\" cy=\"12\" r=\".6\"/><circle cx=\"15\" cy=\"12\" r=\".6\"/>","configuracoes":"<path d=\"M4 7h16M4 17h16\"/><circle cx=\"9\" cy=\"7\" r=\"3\"/><circle cx=\"15\" cy=\"17\" r=\"3\"/>"};
 function moduleIcon(id){return '<svg class="module-icon" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(moduleIconPaths[id]||moduleIconPaths.hoje)+'</svg>';}
-// Navigation groups are presentation only; a module missing from them still gets a link under "Frentes".
-const NAV_GROUPS=[{label:'',ids:['hoje']},{label:'Frentes',ids:['academico','carreira','projetos','financas','fitness']},{label:'Sistema',ids:['agentes','configuracoes']}];
+// Navigation groups are presentation only; additional modules stay under "Áreas".
+const NAV_GROUPS=[{label:'',ids:['hoje']},{label:'Áreas',ids:['academico','carreira','projetos','financas','fitness']},{label:'Sistema',ids:['agentes','configuracoes']}];
 function navMarkup(prefix){
   const grouped=new Set(NAV_GROUPS.flatMap(group=>group.ids)),extra=M.modules.map(module=>module.id).filter(id=>!grouped.has(id));
-  const groups=NAV_GROUPS.map(group=>group.label==='Frentes'?{...group,ids:[...group.ids,...extra]}:group);
+  const groups=NAV_GROUPS.map(group=>group.label==='Áreas'?{...group,ids:[...group.ids,...extra]}:group);
   return groups.map((group,index)=>{
-    const links=group.ids.map(id=>M.modules.find(module=>module.id===id)).filter(Boolean).map(module=>'<a class="nav-item" data-module="'+module.id+'" href="#'+module.id+'">'+moduleIcon(module.id)+'<span class="nav-label">'+html(module.label)+'</span></a>').join('');
+    const links=group.ids.map(id=>M.modules.find(module=>module.id===id)).filter(Boolean).map(module=>{
+      const link='<a class="nav-item" data-module="'+module.id+'" href="#'+module.id+'">'+moduleIcon(module.id)+'<span class="nav-label">'+html(module.label)+'</span></a>';
+      if(prefix!=='side'||group.label!=='Áreas')return link;
+      return `<div class="nav-area-row">${link}<button class="nav-area-more" type="button" data-area-menu="${module.id}" aria-expanded="false" aria-controls="area-menu-${module.id}" aria-label="Ações de ${html(module.label)}">⋯</button><div id="area-menu-${module.id}" class="nav-area-menu" hidden><a href="#${module.id}">Abrir área</a><button type="button" data-area-task="${module.id}"${module.defaultArea?'':' disabled'}>Nova tarefa${module.defaultArea?'':' · em breve'}</button></div></div>`;
+    }).join('');
     if(!links)return '';
     return group.label?`<div class="nav-group" role="group" aria-labelledby="${prefix}-group-${index}"><p class="nav-group-label" id="${prefix}-group-${index}">${group.label}</p>${links}</div>`:`<div class="nav-group">${links}</div>`;
   }).join('');
@@ -351,6 +356,20 @@ function setActiveNav(id){
   });
   $('#more-button').classList.toggle('active',!['hoje','academico','carreira'].includes(M.resolve(id).id));
 }
+function closeAreaMenus(){
+  document.querySelectorAll('[data-area-menu]').forEach(button=>button.setAttribute('aria-expanded','false'));
+  document.querySelectorAll('.nav-area-menu').forEach(menu=>{menu.hidden=true;});
+}
+$('#module-sidebar').addEventListener('click',e=>{
+  const more=e.target.closest?.('[data-area-menu]');
+  if(more){const open=more.getAttribute('aria-expanded')!=='true';closeAreaMenus();$('#'+more.getAttribute('aria-controls')).hidden=!open;more.setAttribute('aria-expanded',String(open));return;}
+  const task=e.target.closest?.('[data-area-task]');
+  if(task){closeAreaMenus();if(!openTask())return;dialogOpener=$('#module-sidebar [data-module="'+task.dataset.areaTask+'"]');$('#task-form').elements.area.value=M.resolve(task.dataset.areaTask).defaultArea;}
+  else if(e.target.closest?.('a'))closeAreaMenus();
+});
+$('#module-sidebar').addEventListener('keydown',e=>{if(e.key==='Escape'){const more=$('#module-sidebar [data-area-menu][aria-expanded="true"]');closeAreaMenus();more?.focus();}});
+document.addEventListener('click',e=>{if(!$('#module-sidebar').contains?.(e.target))closeAreaMenus();});
+$('#module-sidebar').addEventListener('focusout',e=>{if(e.relatedTarget&&!$('#module-sidebar').contains?.(e.relatedTarget))closeAreaMenus();});
 function announce(message){
   const node=$('#action-status');node.textContent=message;
   clearTimeout(announce.timer);if(message)announce.timer=setTimeout(()=>{node.textContent='';},4200);
@@ -390,7 +409,9 @@ function syncQuickDates(){
   const value=$('#task-form').elements.date?.value;
   for(const button of $('#quick-dates').querySelectorAll?.('button[data-date-offset]')||[])button.setAttribute('aria-pressed',String(value===dAdd(localToday(),Number(button.dataset.dateOffset))));
 }
-function openTask(task=null){
+function openTask(task=null,{review=true}={}){
+  if(captureSaving){announce('Salvando a captura…');return false;}
+  if(!task)captureDraft=false;
   const f=$('#task-form');f.reset();editingBase=task?structuredClone(task):null;draftTaskId=null;
   for(const key of ['title','date','time','area','priority'])f.elements[key].value=task?.[key]||(key==='date'?(app.view==='week'&&app.horizon!=='later'?app.weekDay||app.start:app.start):key==='area'?(M.resolve(app.module).defaultArea||'pessoal'):key==='priority'?'high':'');
   $('#task-dialog-title').textContent=task?'Editar tarefa':'Nova tarefa';$('#task-submit').textContent=task?'Salvar alterações':'Adicionar tarefa';
@@ -398,7 +419,8 @@ function openTask(task=null){
   editingCalendarMode=(task&&calendarStatus?.entries.find(x=>x.task_id===task.id)?.mode)||'inherit';
   if(calendarActive()&&f.elements.calendar)f.elements.calendar.value=editingCalendarMode;
   syncQuickDates();
-  storageNotice('');showDialog(dialog);f.elements.title.focus();
+  storageNotice('');if(review){showDialog(dialog);f.elements.title.focus();}
+  return true;
 }
 $('#quick-dates').addEventListener('click',e=>{
   const button=e.target.closest?.('button[data-date-offset]');if(!button)return;
@@ -433,8 +455,8 @@ function taskId(){
   if(globalThis.crypto?.getRandomValues){const bytes=crypto.getRandomValues(new Uint8Array(16));return 'local-'+[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');}
   throw Error('Não foi possível criar um ID seguro. Abra o painel em HTTPS ou localhost.');
 }
-$('#task-form').addEventListener('submit',async ev=>{
-  ev.preventDefault();const f=ev.target;if(!f.reportValidity())return;
+async function submitTask(f){
+  if(!f.reportValidity())return;
   const data=new FormData(f),base=editingBase,title=String(data.get('title')).trim();if(!title)return;
   let id;try{id=base?.id||(draftTaskId??=taskId());}catch(error){storageNotice(error.message);return;}
   const task={...(base||{}),id,title,date:String(data.get('date')),time:String(data.get('time')),kind:'task',priority:String(data.get('priority')),area:String(data.get('area')),detail:base?base.detail:AREA_NAMES[String(data.get('area'))],source:base?.source||'Tarefa · criada por você'};
@@ -443,9 +465,17 @@ $('#task-form').addEventListener('submit',async ev=>{
   // can sync the task under a preference that was not stored. If it cannot be confirmed, nothing is saved.
   const calendarMode=calendarActive()&&f.elements.calendar?String(f.elements.calendar.value):null;
   if(calendarMode&&!await ensureTaskCalendarMode(id,calendarMode,!base)){button.disabled=false;return;}
-  if(await save(current=>base?service.edit(current,base,task):service.insert(current,task))){app.start=task.date;app.view='day';app.horizon=task.date===today?'today':null;f.reset();focusAfterSave='toggle:'+task.id;dialog.close();render();announce(base?'Tarefa atualizada.':'Tarefa adicionada.');}
+  if(await save(current=>base?service.edit(current,base,task):service.insert(current,task))){
+    const focusCapture=!base&&captureDraft&&app.module==='hoje'&&task.date===today;
+    if(!base){recentTaskId=task.id;if(captureDraft){lastCaptureArea=task.area;captureInput.value='';if(app.area!=='all'&&app.area!==task.area){app.area='all';$('#area-filter').value='all';syncLunarFilters();}}setTimeout(()=>{if(recentTaskId===task.id){recentTaskId=null;renderDayLine(items());}},800);}
+    captureDraft=false;app.start=task.date;app.view='day';app.horizon=task.date===today?'today':null;f.reset();
+    const savedFocus=(focusCapture?'line:':'toggle:')+task.id;
+    if(dialog.open){focusAfterSave=savedFocus;dialog.close();render();}else{render();focusKey(savedFocus);}
+    announce(base?'Tarefa atualizada.':'Tarefa adicionada.');
+  }
   button.disabled=false;
-});
+}
+$('#task-form').addEventListener('submit',async ev=>{ev.preventDefault();await submitTask(ev.target);});
 let importSession=null,importGeneration=0;
 const dataDialog=$('#data-dialog');
 $('#data-button').addEventListener('click',()=>{storageNotice('');showDialog(dataDialog);});
@@ -533,7 +563,7 @@ async function refreshSnapshot(name,{force=false}={}){
   try{await snapshotLoaders[name]();}finally{snapshotBusy[name]=false;}
   return true;
 }
-function refreshDueSnapshots(){return Promise.all(Object.keys(snapshotLoaders).map(name=>refreshSnapshot(name)));}
+function refreshDueSnapshots(){return Promise.all([...Object.keys(snapshotLoaders).map(name=>refreshSnapshot(name)),loadConsultations()]);}
 async function loadAgenda(){
   try{
     const data=await service.load('agenda');
@@ -556,6 +586,54 @@ function updateDate(value){
   return new Intl.DateTimeFormat('pt-BR',{timeZone:ZONE,year:'numeric',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(date).replace('.','');
 }
 function snapshotAge(value){const age=Date.now()-Date.parse(value);return age<0?'Data no futuro · conferir captura':age<3600000?'Captura há menos de 1 h':age<86400000?'Captura há '+Math.floor(age/3600000)+' h':'Captura há '+Math.floor(age/86400000)+' dia(s)';}
+function consultationText(name){
+  const source=jobActivity?.routine?.[name],manual=name==='jobs'?jobActivity?.operation:null;
+  const manualAt=manual?.summary?.checked_at||manual?.started_at;
+  let text;
+  if(manualAt&&(!source?.last_attempt_at||Date.parse(manualAt)>=Date.parse(source.last_attempt_at))){
+    const date=updateDate(manualAt);
+    if(P.freshness(manualAt)==='future')text='Data da consulta do botão no futuro. Confira a origem.';
+    else if(manual.status==='completed'){
+      const result=manual.summary,pending=result.counts.pending;
+      text='Última consulta dos alertas (botão) em '+date+'. '+(result.status==='updated'?'Vagas salvas atualizadas.':'Vagas salvas mantidas.');
+      if(pending)text+=pending===1?' 1 confirmação oficial pendente.':' '+pending+' confirmações oficiais pendentes.';
+      else if(!result.official_complete)text+=' Confirmação oficial incompleta.';
+    }else text='Última tentativa (botão) em '+date+(
+      manual.status==='running'?' em andamento.':manual.status==='uncertain'?' com resultado incerto.':' falhou.');
+  }else if(source?.last_attempt_at){
+    const date=updateDate(source.last_attempt_at);
+    if(P.freshness(source.last_attempt_at)==='future')text='Data da consulta da rotina no futuro. Confira a origem.';
+    else if(source.status==='failed')text='Última tentativa da rotina em '+date+' falhou.'+
+      (source.last_success_at?' Último sucesso em '+updateDate(source.last_success_at)+'.':'');
+    else if(source.status==='success'){
+      text='Última consulta '+(name==='jobs'?'dos alertas':'dos e-mails')+' (rotina) em '+date+'.';
+      if(name==='jobs'&&source.new_items!==null)text+=' '+source.new_items+' alertas novos após deduplicação.';
+    }
+  }
+  text||='Última consulta sem registro disponível.';
+  if(consultationFailed)text+=' Histórico de consultas indisponível.';
+  else if(jobActivity&&!jobActivity.routine)text+=' Histórico da rotina indisponível.';
+  return text;
+}
+async function loadConsultations({force=false}={}){
+  if(document.hidden)return;
+  if(consultationRead)return consultationRead;
+  if(!force&&Date.now()-consultationAttempt<SNAPSHOT_REFRESH_MS)return;
+  consultationAttempt=Date.now();
+  const version=consultationVersion;
+  consultationRead=(async()=>{
+    try{
+      const result=await service.jobSearchStatus();
+      if(version===consultationVersion){jobActivity=result;consultationFailed=false;}
+    }catch{if(version===consultationVersion)consultationFailed=true;}
+    finally{
+      consultationRead=null;
+      renderJobs();
+      if(viewData.updates)paint($('#updates-list'),updatesMarkup());
+    }
+  })();
+  return consultationRead;
+}
 function updatesMarkup(){return workspace.view(app.module).streams.map(updateMarkup).join('')||'<div class="updates-empty">Nenhum resumo específico desta área.</div>';}
 function updateMarkup(item){
   const tone=item.status==='attention'?'attention':item.status==='pending'?'pending':'current';
@@ -563,7 +641,8 @@ function updateMarkup(item){
   const status=future?'Data a conferir':oldRecord(item.updated_at)?'Registro antigo':tone==='attention'?'Requer atenção':tone==='pending'?'Pendente':'Atualizado';
   const badgeTone=future||oldRecord(item.updated_at)?'pending':tone;
   const next=item.next_step?'<div class="update-field"><span class="update-field-label">Próxima ação</span><p>'+html(item.next_step)+'</p></div>':'';
-  return '<details class="update" data-stream="'+html(item.id)+'"'+(openStreams.has(item.id)?' open':'')+'><summary data-focus-key="stream:'+html(item.id)+'"><span class="update-label">'+html(item.label)+'</span><span class="update-status '+badgeTone+'"><span class="update-dot '+badgeTone+'" aria-hidden="true"></span>'+status+'</span><strong class="update-headline">'+html(item.headline)+'</strong></summary><div class="update-body"><div class="update-field"><span class="update-field-label">Situação</span><p>'+html(item.summary)+'</p></div>'+next+'<p class="update-meta"><span>Último registro <time datetime="'+html(item.updated_at)+'">'+html(updateDate(item.updated_at))+'</time></span><span>'+html(snapshotAge(item.updated_at))+'</span></p></div></details>';
+  const consultation=['estagios','emails'].includes(item.id)?'<p class="update-meta">'+html(consultationText('gmail'))+'</p>':'';
+  return '<details class="update" data-stream="'+html(item.id)+'"'+(openStreams.has(item.id)?' open':'')+'><summary data-focus-key="stream:'+html(item.id)+'"><span class="update-label">'+html(item.label)+'</span><span class="update-status '+badgeTone+'"><span class="update-dot '+badgeTone+'" aria-hidden="true"></span>'+status+'</span><strong class="update-headline">'+html(item.headline)+'</strong></summary><div class="update-body"><div class="update-field"><span class="update-field-label">Situação</span><p>'+html(item.summary)+'</p></div>'+next+consultation+'<p class="update-meta"><span>Última alteração do conteúdo <time datetime="'+html(item.updated_at)+'">'+html(updateDate(item.updated_at))+'</time></span><span>'+html(snapshotAge(item.updated_at))+'</span></p></div></details>';
 }
 // A summary opened or closed by the person is remembered for this page, so redraws keep it as it is.
 $('#updates-list').addEventListener('toggle',e=>{
@@ -585,20 +664,159 @@ async function loadUpdates(){
 }
 const jobAlertDate=date=>new Intl.DateTimeFormat('pt-BR',{timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'}).format(new Date(date+'T12:00:00Z')).replace('.','');
 function jobMarkup(job){
-  return `<article class="job-item"><div class="job-top"><span class="job-fit ${html(job.fit)}">${job.fit==='alta'?'Alta compatibilidade':'Compatibilidade média'}</span><span class="job-alerted">Alerta de ${html(jobAlertDate(job.alerted_at))}</span></div><h3>${html(job.title)}</h3><p class="job-company">${html(job.company)} <span aria-hidden="true">·</span> ${html(job.location)}</p><div class="job-reason"><span class="update-field-label">Por que combina</span><p>${html(job.reason)}</p></div><a class="job-link" href="${html(job.url)}" target="_blank" rel="noopener noreferrer" data-focus-key="job:${html(job.id)}" aria-label="Abrir vaga ${html(job.title)} em nova aba">Ver vaga${ICON.external}</a></article>`;
+  const fit=job.fit==='alta'?'Alta compatibilidade':'Compatibilidade média';
+  return `<article class="job-item${lunarSelectedJob?.id===job.id?' is-selected':''}"><div class="job-summary"><h3>${html(job.title)}</h3><p class="job-company">${html(job.company)} <span aria-hidden="true">·</span> ${html(job.location)}</p><span class="job-alerted">Alerta de ${html(jobAlertDate(job.alerted_at))}</span></div><div class="job-top"><span class="job-fit ${html(job.fit)}" aria-label="${fit}"><span aria-hidden="true">${job.fit==='alta'?'Alta':'Média'}</span></span></div><button type="button" class="job-detail-button" data-job-detail="${html(job.id)}" data-focus-key="job:${html(job.id)}" aria-haspopup="dialog" aria-controls="lunar-job-dialog">Ver detalhes<span class="sr-only"> de ${html(job.title)} · ${fit}</span></button></article>`;
 }
 function renderJobs(){
+  $('#jobs-consultation').textContent=consultationText('jobs');
   const stamp=$('#jobs-stamp'),stateNode=$('#jobs-state'),list=$('#jobs-list');
-  if(!viewData.jobs){stamp.textContent=service.failed('jobs')?'Captura indisponível':'Carregando vagas…';stateNode.textContent=service.failed('jobs')?'Leitura indisponível':'Carregando';stateNode.classList.toggle('attention',service.failed('jobs'));paint(list,service.failed('jobs')?'<div class="jobs-empty"><strong>Não foi possível ler as vagas.</strong><span>Tente reler mais tarde. Nenhuma vaga foi descartada.</span></div>':'<p class="jobs-empty">Carregando oportunidades…</p>');return;}
+  list.setAttribute('aria-busy',String(!!jobsRead));
+  if(!viewData.jobs){stamp.textContent=service.failed('jobs')?'Captura indisponível':'Carregando vagas…';stateNode.textContent=service.failed('jobs')?'Leitura indisponível':'Carregando';stateNode.classList.toggle('attention',service.failed('jobs'));paint(list,service.failed('jobs')?'<div class="jobs-empty"><strong>Não foi possível ler as vagas.</strong><span>Tente reler mais tarde. Nenhuma vaga foi descartada.</span></div>':'<div class="jobs-skeleton" aria-hidden="true"><i></i><i></i><i></i></div><p class="sr-only">Carregando oportunidades…</p>');return;}
   const old=oldRecord(viewData.jobs.captured_at),future=Date.parse(viewData.jobs.captured_at)>Date.now();
-  stamp.textContent=(service.failed('jobs')?'Última captura válida desta sessão: ':'Captura: ')+updateDate(viewData.jobs.captured_at)+' · Fonte: '+viewData.jobs.source;
+  stamp.textContent=(service.failed('jobs')?'Última captura válida desta sessão: ':'Última alteração das vagas salvas: ')+updateDate(viewData.jobs.captured_at)+' · Fonte: '+viewData.jobs.source;
+  $('#jobs-saved-label').textContent='Vagas salvas anteriormente · '+updateDate(viewData.jobs.captured_at);
   stateNode.textContent=service.failed('jobs')?'Leitura indisponível'+(old?' · registro antigo':''):old?'Registro antigo':future?'Data da captura a conferir':'Registro recente';
   stateNode.classList.toggle('attention',service.failed('jobs')||old||future);
-  paint(list,viewData.jobs.items.length?viewData.jobs.items.map(jobMarkup).join(''):'<div class="jobs-empty"><strong>Nenhuma vaga neste registro.</strong><span>Confira novamente após a próxima captura.</span></div>');
+  paint(list,viewData.jobs.items.length?viewData.jobs.items.map(jobMarkup).join(''):'<div class="jobs-empty"><strong>Nada novo no radar por enquanto.</strong><span>Nenhuma vaga neste registro. Nada foi enviado em seu nome.</span></div>');
 }
+let lunarSelectedJob=null,lunarJobOpener=null;
+let lunarJobHandoff=false;
+const lunarJobDialog=$('#lunar-job-dialog');
+$('#jobs-list').addEventListener('click',e=>{
+  const button=e.target.closest?.('[data-job-detail]');if(!button)return;
+  const job=viewData.jobs?.items.find(item=>item.id===button.dataset.jobDetail);if(!job)return;
+  lunarSelectedJob=job;lunarJobOpener=button;
+  $('#lunar-job-source').textContent='Vaga · '+viewData.jobs.source;
+  $('#lunar-job-title').textContent=job.title;$('#lunar-job-company').textContent=job.company+' · '+job.location;
+  $('#lunar-job-fit').textContent=job.fit==='alta'?'Alta':'Média';$('#lunar-job-reason').textContent=job.reason;
+  $('#lunar-job-alert').textContent='Alerta de '+jobAlertDate(job.alerted_at)+'. Aderência estimada; confirme a disponibilidade na fonte.';
+  const link=$('#lunar-job-link');link.hidden=!job.url;if(job.url)link.href=job.url;else link.removeAttribute('href');
+  link.setAttribute('aria-label','Abrir vaga na fonte: '+job.title+' (nova aba)');
+  document.querySelectorAll('#jobs-list .job-item').forEach(card=>card.classList.toggle('is-selected',card.contains(button)));
+  lunarJobDialog.showModal();$('#lunar-job-close').focus();
+});
+$('#lunar-job-close').addEventListener('click',()=>lunarJobDialog.close());
+lunarJobDialog.addEventListener('keydown',e=>{
+  if(e.key!=='Tab')return;
+  const controls=[...lunarJobDialog.querySelectorAll('button:not(:disabled),a[href]')].filter(node=>!node.hidden);
+  const first=controls[0],last=controls.at(-1);
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
+});
+lunarJobDialog.addEventListener('close',()=>{
+  if(!lunarJobHandoff){
+    const replacement=[...document.querySelectorAll('[data-job-detail]')].find(button=>button.dataset.jobDetail===lunarSelectedJob?.id);
+    (lunarJobOpener?.isConnected?lunarJobOpener:replacement||$('#jobs-reload')).focus();
+  }
+  lunarJobHandoff=false;lunarJobOpener=null;lunarSelectedJob=null;
+  document.querySelectorAll('#jobs-list .job-item').forEach(card=>card.classList.toggle('is-selected',false));
+});
+$('#lunar-job-task').addEventListener('click',()=>{
+  const job=lunarSelectedJob;if(!job||captureSaving)return;lunarJobHandoff=true;lunarJobDialog.close();openTask();
+  $('#task-form').elements.title.value=('Revisar vaga: '+job.title+' — '+job.company).slice(0,100);
+  $('#task-form').elements.area.value='carreira';
+});
+
+const captureInput=$('#lunar-capture-input'),shortcuts=$('#lunar-shortcuts');
+let captureOptions=[],captureContext=null,activeCaptureOption=-1,lastCaptureArea=null,captureSaving=false;
+const captureFold=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function showShortcuts(open){
+  shortcuts.hidden=!open;captureInput.setAttribute('aria-expanded',String(open));
+  if(!open){activeCaptureOption=-1;captureInput.removeAttribute('aria-activedescendant');}
+}
+function selectCaptureOption(index){
+  const enabled=captureOptions.map((option,i)=>option.disabled?-1:i).filter(i=>i>=0);
+  activeCaptureOption=enabled.includes(index)?index:-1;
+  shortcuts.querySelectorAll('[data-capture-option]').forEach((node,i)=>node.classList.toggle('is-active',i===activeCaptureOption));
+  if(activeCaptureOption<0)captureInput.removeAttribute('aria-activedescendant');
+  else captureInput.setAttribute('aria-activedescendant','lunar-option-'+activeCaptureOption);
+}
+function refreshCaptureOptions(){
+  const value=captureInput.value,cursor=captureInput.selectionStart??value.length,before=value.slice(0,cursor);
+  captureContext=null;captureOptions=[];
+  if(/^\/[^\s]*$/.test(value)){
+    captureContext={start:0,end:value.length};
+    captureOptions=[['tarefa','Nova tarefa',false],['lembrete','em breve',true],['vaga','em breve',true],['nota','em breve',true]]
+      .filter(([name])=>name.startsWith(captureFold(value.slice(1))))
+      .map(([name,description,disabled])=>({value:'/'+name,label:'/'+name,description,disabled}));
+  }else{
+    const match=before.match(/(?:^|\s)#([^\s#]*)$/);
+    if(match){
+      const start=before.lastIndexOf('#'),tail=value.slice(cursor).match(/^[^\s]*/)[0];
+      captureContext={start,end:cursor+tail.length};
+      captureOptions=Object.entries(AREA_NAMES).filter(([key,label])=>captureFold(key).startsWith(captureFold(match[1]))||captureFold(label).startsWith(captureFold(match[1])))
+        .map(([key,label])=>({value:'#'+key,label:'#'+label,description:'Área existente',disabled:false}));
+    }
+  }
+  paint(shortcuts,captureOptions.map((option,i)=>`<button id="lunar-option-${i}" type="button" role="menuitem" tabindex="-1" data-capture-option="${i}"${option.disabled?' disabled aria-disabled="true"':''}>${html(option.label)}<span>${html(option.description)}</span></button>`).join(''));
+  showShortcuts(captureOptions.length>0);selectCaptureOption(-1);
+}
+function chooseCaptureOption(index){
+  const option=captureOptions[index];if(!option||option.disabled||!captureContext)return;
+  const {start,end}=captureContext;
+  captureInput.value=captureInput.value.slice(0,start)+option.value+' '+captureInput.value.slice(end);
+  showShortcuts(false);captureInput.focus();captureInput.setSelectionRange(start+option.value.length+1,start+option.value.length+1);
+}
+async function captureTask(){
+  if($('#lunar-capture').hidden||captureSaving)return;
+  const raw=captureInput.value.trim();if(!raw)return;
+  if(raw.startsWith('/')&&!/^\/tarefa(?:\s|$)/.test(raw)){refreshCaptureOptions();announce('Use /tarefa. Os demais atalhos estão em breve.');return;}
+  let area=null;
+  const title=raw.replace(/^\/tarefa\s*/, '').replace(/(^|\s)#([^\s#]+)/g,(token,space,name)=>{
+    const existing=Object.keys(AREA_NAMES).find(key=>captureFold(key)===captureFold(name)||captureFold(AREA_NAMES[key])===captureFold(name));
+    if(!existing)return token;area=existing;return space;
+  }).replace(/\s+/g,' ').trim();
+  if(!title){announce('Escreva o título da tarefa.');return;}
+  area=area||(app.area!=='all'?app.area:null)||lastCaptureArea||M.resolve(app.module).defaultArea||'pessoal';
+  const review=calendarActive();
+  showShortcuts(false);openTask(null,{review});captureDraft=true;
+  const form=$('#task-form');form.elements.title.value=title;form.elements.date.value=today;form.elements.area.value=area;syncQuickDates();
+  if(review){announce('Revise os campos e a preferência do Google Agenda antes de adicionar.');return;}
+  captureSaving=true;captureInput.readOnly=true;$('.capture-submit').disabled=true;
+  try{
+    await submitTask(form);
+    // The existing form owns validation, errors and safe retries of this same draft/ID.
+    if(captureDraft){showDialog(dialog);form.elements.title.focus();}
+  }finally{captureSaving=false;captureInput.readOnly=false;$('.capture-submit').disabled=false;}
+}
+$('#lunar-capture').addEventListener('submit',e=>{e.preventDefault();captureTask();});
+shortcuts.addEventListener('click',e=>{const option=e.target.closest?.('[data-capture-option]');if(option)chooseCaptureOption(Number(option.dataset.captureOption));});
+captureInput.addEventListener('input',refreshCaptureOptions);
+$('#lunar-capture').addEventListener('keydown',e=>{
+  if(e.isComposing||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==='Escape'&&!shortcuts.hidden){e.preventDefault();showShortcuts(false);captureInput.focus();return;}
+  if(['ArrowDown','ArrowUp'].includes(e.key)&&!shortcuts.hidden){
+    e.preventDefault();const enabled=captureOptions.map((option,i)=>option.disabled?-1:i).filter(i=>i>=0);
+    const current=enabled.indexOf(activeCaptureOption),step=e.key==='ArrowDown'?1:-1;
+    selectCaptureOption(enabled[(current<0?(step>0?0:enabled.length-1):(current+step+enabled.length)%enabled.length)]);return;
+  }
+  if(e.key==='Enter'&&!e.shiftKey){
+    e.preventDefault();
+    if(!shortcuts.hidden){const index=activeCaptureOption>=0?activeCaptureOption:captureOptions.findIndex(option=>!option.disabled);chooseCaptureOption(index);}
+    else captureTask();
+  }
+});
+document.addEventListener('click',e=>{if(!$('#lunar-capture').contains?.(e.target))showShortcuts(false);});
+$('#lunar-capture').addEventListener('focusout',e=>{if(e.relatedTarget&&!$('#lunar-capture').contains?.(e.relatedTarget))showShortcuts(false);});
+// Keep keyboard focus clear of the two fixed mobile bars when the document scrolls.
+document.addEventListener('focusin',e=>{
+  const target=e.target;
+  if(!globalThis.matchMedia?.('(max-width:1079px)').matches||!target?.closest?.('.content')||target.closest('.lunar-capture')||!target.matches(':focus-visible'))return;
+  const rect=target.getBoundingClientRect(),top=$('.topbar').getBoundingClientRect().bottom;
+  const bottom=($('#lunar-capture').hidden?$('.mobile-nav'):$('#lunar-capture')).getBoundingClientRect().top-8;
+  if(rect.top<top||rect.bottom>bottom)target.scrollIntoView({block:'center',behavior:'auto'});
+});
+document.addEventListener('keydown',e=>{if(e.defaultPrevented||e.key!=='/'||e.ctrlKey||e.metaKey||e.altKey||e.isComposing||$('#lunar-capture').hidden||document.querySelector('dialog[open]')||e.target?.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName||''))return;e.preventDefault();captureInput.scrollIntoView({block:'center'});captureInput.focus();if(!captureInput.value)captureInput.value='/';refreshCaptureOptions();});
+$('#lunar-filters').addEventListener('click',e=>{const button=e.target.closest?.('[data-lunar-area]');if(!button)return;app.area=button.dataset.lunarArea;$('#area-filter').value=app.area;syncLunarFilters();render();});
+function syncLunarFilters(){document.querySelectorAll('[data-lunar-area]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.lunarArea===app.area)));}
+$('#area-filter').addEventListener('change',syncLunarFilters);
+function setLunarBackground(value){if(!['night','dots','plain'].includes(value))value='night';if(document.body.dataset)document.body.dataset.lunarBackground=value;document.querySelectorAll('[data-background]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.background===value)));try{localStorage.setItem('luan-ui-background',value);}catch{}}
+let lunarBackground='night';try{lunarBackground=localStorage.getItem('luan-ui-background')||'night';}catch{}setLunarBackground(lunarBackground);
+document.querySelectorAll('[data-background]').forEach(button=>button.addEventListener('click',()=>setLunarBackground(button.dataset.background)));
 function loadJobs(){
   if(jobsRead)return jobsRead;$('#jobs-reload').disabled=true;
   jobsRead=(async()=>{
+    $('#jobs-list').setAttribute('aria-busy','true');
     try{await service.load('jobs');}catch{}
     finally{jobsRead=null;$('#jobs-reload').disabled=false;renderJobs();renderFreshness();}
   })();return jobsRead;
@@ -624,16 +842,21 @@ function jobSearchError(error){
   $('#jobs-gmail-authorize').hidden=!authorize;$('#jobs-gmail-consent').hidden=!authorize;
   $('#jobs-search-status').textContent=(JOB_SEARCH_ERRORS[code]||'Não foi possível concluir a busca. As vagas salvas foram preservadas.')+(error?.retryAfter?' Tente novamente em '+error.retryAfter+' segundos.':'');
 }
-function renderPendingJobs(candidates){
+function renderPendingJobs(candidates,checkedAt){
   $('#jobs-pending').hidden=!candidates.length;
-  paint($('#jobs-pending-list'),candidates.map(job=>`<article class="job-item pending"><p class="job-pending-label">Confirmação oficial pendente</p><h3>${html(job.title)}</h3><p class="job-company">${html(job.company)} · ${html(job.location)}</p><p>${html(job.reason)}</p><a class="job-link" href="${html(job.url)}" target="_blank" rel="noopener noreferrer" data-focus-key="pending:${html(job.id)}">Conferir anúncio${ICON.external}</a></article>`).join(''));
+  $('#jobs-disclosure').open=!candidates.length;
+  $('#jobs-pending-stamp').textContent=candidates.length?'Consulta realizada em '+updateDate(checkedAt)+'.':'';
+  paint($('#jobs-pending-list'),candidates.map(job=>`<article class="job-item pending"><p class="job-pending-label">A confirmar · confirmação oficial pendente</p><h3>${html(job.title)}</h3><p class="job-company">${html(job.company)} · ${html(job.location)}</p><p>${html(job.reason)}</p><a class="job-link" href="${html(job.url)}" target="_blank" rel="noopener noreferrer" data-focus-key="pending:${html(job.id)}">Conferir anúncio${ICON.external}</a></article>`).join(''));
 }
 async function showJobSearchResult(result){
+  consultationVersion++;
+  jobActivity={...jobActivity,operation:{status:'completed',started_at:result.checked_at,summary:result}};
+  consultationFailed=false;
   if(jobsRead)await jobsRead;
   await loadJobs();
   const count=result.counts;
-  $('#jobs-search-status').textContent=(result.status==='updated'?'Vagas atualizadas. ':'Sem novidades na captura salva. ')+count.messages+' mensagens lidas / '+count.confirmed+' confirmadas / '+count.pending+' pendentes.'+(result.source_complete?' Consulta dos alertas concluída em '+updateDate(result.checked_at)+'.':'')+(!result.official_complete?' Confirmação oficial incompleta.':'')+(result.warnings.includes('jobs_search_candidates_limited')?' O limite de verificação foi atingido; apenas parte dos candidatos elegíveis foi verificada.':'')+(count.pending>0&&!result.pending_candidates?.length?' Os detalhes das oportunidades pendentes não foram retidos nesta resposta.':'')+(result.warnings.length?' A consulta contém ressalvas; confira as oportunidades antes de decidir.':'')+(service.failed('jobs')?' Não foi possível reler a captura atualizada. A última captura válida foi mantida.':'');
-  renderPendingJobs(result.pending_candidates||[]);
+  $('#jobs-search-status').textContent=(result.status==='updated'?'Vagas atualizadas. ':count.pending>0?'Alertas recentes encontrados; a confirmar. ':'Consulta dos alertas concluída. Vagas salvas mantidas. ')+count.messages+' mensagens lidas / '+count.confirmed+' confirmadas / '+count.pending+' pendentes.'+(result.source_complete?' Consulta dos alertas concluída em '+updateDate(result.checked_at)+'.':'')+(!result.official_complete?' Confirmação oficial incompleta.':'')+(result.warnings.includes('jobs_search_candidates_limited')?' O limite de verificação foi atingido; apenas parte dos candidatos elegíveis foi verificada.':'')+(count.pending>0&&!result.pending_candidates?.length?' Os detalhes das oportunidades pendentes não foram retidos nesta resposta.':'')+(result.warnings.length?' A consulta contém ressalvas; confira as oportunidades antes de decidir.':'')+(service.failed('jobs')?' Não foi possível reler a captura atualizada. A última captura válida foi mantida.':'');
+  renderPendingJobs(result.pending_candidates||[],result.checked_at);
 }
 async function reconcileJobSearch(id){
   const status=await service.jobSearchStatus(id),operation=status.operation;
@@ -651,11 +874,12 @@ async function searchJobsManually(){
   }catch(error){
     if(error.uncertain&&id){try{await reconcileJobSearch(id);}catch{jobSearchError({code:'job_search_result_uncertain'});}}
     else jobSearchError(error);
+    await loadConsultations({force:true});
   }finally{jobSearchRunning=false;$('#jobs-retry').disabled=false;$('#jobs-retry').removeAttribute('aria-busy');}
 }
 $('#jobs-gmail-authorize').hidden=true;$('#jobs-gmail-consent').hidden=true;$('#jobs-pending').hidden=true;
 $('#jobs-retry').addEventListener('click',searchJobsManually);
-$('#jobs-reload').addEventListener('click',()=>refreshSnapshot('jobs',{force:true}));
+$('#jobs-reload').addEventListener('click',()=>Promise.all([refreshSnapshot('jobs',{force:true}),loadConsultations({force:true})]));
 $('#jobs-gmail-authorize').addEventListener('click',async()=>{
   if(gmailAuthorizing)return;gmailAuthorizing=true;$('#jobs-gmail-authorize').disabled=true;
   try{const result=await service.startGmailAuthorization();globalThis.location.assign(result.authorization_url);}

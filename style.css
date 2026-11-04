@@ -1,4 +1,4 @@
-/* LUAN OS — direção "Linha do dia".
+/* LUAN OS — direção "Noite de lua".
    Um único plano de fundo, hierarquia por tipografia e espaço, uma cor de ação (anil) e uma de atenção (lume).
    Sem fonte externa, CDN, imagem remota ou estilo inline: compatível com uma CSP restritiva. */
 
@@ -64,7 +64,7 @@ time,.tabular{font-variant-numeric:tabular-nums}
 :focus{outline:none}
 :focus-visible{outline:2px solid var(--anil);outline-offset:2px}
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
-.skip-link{position:fixed;left:12px;top:12px;z-index:100;padding:10px 16px;border-radius:var(--r-m);background:var(--anil);color:var(--on-anil);font-weight:600;text-decoration:none;transform:translateY(calc(-100% - 24px));transition:transform var(--t) var(--ease)}
+.skip-link{position:fixed;left:12px;top:12px;z-index:100;min-height:44px;padding:10px 16px;border-radius:var(--r-m);background:var(--anil);color:var(--on-anil);font-weight:600;text-decoration:none;transform:translateY(calc(-100% - 24px));transition:transform var(--t) var(--ease)}
 .skip-link:focus-visible{transform:none;color:var(--on-anil)}
 kbd{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:6px;border:1px solid currentColor;font:600 11px/1 var(--sans);opacity:.75}
 
@@ -101,7 +101,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{wi
 select{appearance:none;-webkit-appearance:none;padding-right:40px;background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 15px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 input:not([type=checkbox]):not([type=radio]):not([type=file]):hover,select:hover{border-color:var(--ink-3)}
 input:not([type=checkbox]):not([type=radio]):not([type=file]):focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--anil);box-shadow:0 0 0 3px var(--anil-soft)}
-input::placeholder{color:var(--ink-3);opacity:1}
+input::placeholder,textarea::placeholder{color:var(--ink-3);opacity:1}
 .field-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .check-row{display:flex;align-items:center;gap:12px;min-height:44px;font-weight:500;cursor:pointer}
 .check-row input{width:20px;height:20px;margin:0;accent-color:var(--anil)}
@@ -123,7 +123,7 @@ input::placeholder{color:var(--ink-3);opacity:1}
 .choice i{width:8px;height:8px;border-radius:50%;background:var(--area-pessoal)}
 .segmented{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;padding:4px;border-radius:var(--r-m);background:var(--sunken)}
 .segmented .choice{display:flex}
-.segmented .choice span{width:100%;justify-content:center;min-height:40px;border:0;border-radius:9px;background:transparent}
+.segmented .choice span{width:100%;justify-content:center;min-height:44px;border:0;border-radius:9px;background:transparent}
 .segmented .choice input:checked+span{background:var(--raised);color:var(--ink);box-shadow:var(--shadow-xs)}
 [data-area=faculdade] i,i[data-area=faculdade]{background:var(--area-faculdade)}
 [data-area=carreira] i,i[data-area=carreira]{background:var(--area-carreira)}
@@ -416,7 +416,7 @@ input::placeholder{color:var(--ink-3);opacity:1}
 .jobs-search-status:empty{display:none}
 .jobs-gmail-consent{padding:14px;border:1px solid var(--line-strong);border-radius:var(--r-l);background:var(--sunken);color:var(--ink-2);font-size:13px}
 .jobs-gmail-consent p{margin:0 0 12px}
-.jobs-pending{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line-strong)}
+.jobs-pending{margin:16px 0;padding:16px;border:1px solid var(--anil);border-radius:var(--r-l);background:var(--raised)}
 .jobs-pending h3{font-size:15px;color:var(--ink)}
 .jobs-pending>p{margin-top:6px;font-size:13px;color:var(--ink-3)}
 .job-pending-label{color:var(--lume-ink);font-size:12px;font-weight:600}
@@ -524,7 +524,7 @@ input::placeholder{color:var(--ink-3);opacity:1}
 .fab:active{transform:scale(.95)}
 .fab svg{width:24px;height:24px}
 @media (min-width:1080px){.mobile-nav,.fab{display:none}}
-body:has(.content :is(input,select,textarea):focus) :is(.mobile-nav,.fab){display:none}
+body:has(.content :is(input,select,textarea):not(#lunar-capture-input):not(#lunar-capture-area):focus) :is(.mobile-nav,.fab){display:none}
 .sheet-links{display:grid;gap:4px}
 .sheet-links .nav-item{min-height:52px;font-size:15.5px}
 .sheet-group-label{padding:10px 12px 4px;color:var(--ink-3);font-size:12.5px;font-weight:600}
@@ -618,4 +618,234 @@ input[type=file]::file-selector-button{min-height:38px;margin-right:12px;padding
 @media (forced-colors:active){
   .check-box,.week-summary,.horizon,.choice span,.focus{border:1px solid CanvasText}
   .event-check:checked+.check-box{background:Highlight}
+}
+/* Noite de lua. Only preferences and ephemeral UI state live in the browser. */
+:root{
+  --anil:#5650c4;--anil-hover:#403a9e;--anil-ink:#4943a9;--anil-soft:#ecebfa;--anil-line:#cbc9ee;
+  --ink:#1b1a33;--ink-2:#45435c;--ink-3:#57556e;--ground:#f4f3fa;
+  --r-m:12px;--r-l:20px;--r-xl:28px;--area-faculdade:#4c74d9;--area-carreira:#7958c8;
+  --glass:rgb(255 255 255/.64);--glass-selected:rgb(255 255 255/.92);--glass-border:rgb(255 255 255/.85);--glass-muted:#39364f;--glass-link:#393178;
+  --sky-top:#eeeaf9;--sky-bottom:#9188cf;--hill-far:#8f80cf;--hill-mid:#5a62bb;--hill-near:#302b69;
+  --bounce:cubic-bezier(.34,1.32,.5,1);--mobile-bar:64px;
+}
+.main{position:relative;isolation:isolate}
+.lunar-scene{position:fixed;inset:22vh 0 0;z-index:-1;pointer-events:none;overflow:hidden;background:linear-gradient(var(--sky-top),#c6bfe6 45%,var(--sky-bottom));mask-image:linear-gradient(transparent,#000 45%)}
+.lunar-stars{position:absolute;inset:0;background:radial-gradient(circle at 12% 47%,#fff 0 1px,transparent 2px),radial-gradient(circle at 29% 57%,#fff 0 1px,transparent 2px),radial-gradient(circle at 45% 40%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 56% 61%,#fff 0 1px,transparent 2px),radial-gradient(circle at 80% 48%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 91% 60%,#fff 0 1px,transparent 2px)}
+.lunar-moon{position:absolute;right:18%;bottom:18%;width:96px;height:96px;fill:#f2eedc;filter:drop-shadow(0 0 18px #f2eedc) drop-shadow(0 0 48px rgb(242 238 220/.85))}
+.lunar-hills{position:absolute;inset:auto 0 0;width:100%;height:32%}
+.hill-far{fill:var(--hill-far)}.hill-mid{fill:var(--hill-mid)}.hill-near{fill:var(--hill-near)}.hill-dot{fill:rgb(24 21 73/.22)}
+body[data-lunar-background=dots] .lunar-scene{inset:0;background:radial-gradient(var(--anil) 1px,transparent 1.5px);background-size:12px 12px;opacity:.12;mask-image:none}
+body[data-lunar-background=dots] .lunar-scene>*{display:none}
+body[data-lunar-background=plain] .lunar-scene{display:none}
+.sidebar{background:#23214a;color:#f7f6ff;border:0;background-image:radial-gradient(rgb(255 255 255/.055) 1px,transparent 1.2px);background-size:9px 9px}
+.sidebar .brand,.sidebar .nav-item,.sidebar .nav-item .module-icon,.sidebar .sources-button{color:#e5e3f4}
+.sidebar .brand{font-size:23px;letter-spacing:-.05em;text-transform:lowercase}
+.sidebar .brand-mark{color:#f2eedc}
+.sidebar .nav-group-label,.sidebar .profile-text small{color:#c1bed8}
+.sidebar .nav-item:hover{background:rgb(255 255 255/.08);color:#fff}
+.sidebar .nav-item.active{background:transparent;box-shadow:none;color:#fff}
+.sidebar .nav-item.active .module-icon{color:#fff}
+.sidebar .sidebar-foot{border-color:rgb(255 255 255/.2)}
+.sidebar .profile{background:rgb(255 255 255/.08);border:1px solid rgb(255 255 255/.15);border-radius:20px;padding:12px}
+.sidebar :focus-visible,.mobile-nav :focus-visible{outline-color:#d5d0ff}
+/* Fixed row geometry keeps indicators in CSS: no inline coordinates or JS animation. */
+.side-nav{position:relative;isolation:isolate;gap:16px}
+.side-nav .nav-group{gap:4px}
+.side-nav .nav-group-label{height:24px;padding:0 12px;font-size:12px;line-height:24px}
+.side-nav .nav-item{height:44px}
+.nav-area-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 44px;height:44px}
+.nav-area-more{min-width:44px;min-height:44px;padding:0;border:0;border-radius:12px;background:transparent;color:#e5e3f4;font-size:22px;visibility:hidden}
+.nav-area-row:hover .nav-area-more,.nav-area-row:focus-within .nav-area-more{visibility:visible}
+.nav-area-more:hover{background:rgb(255 255 255/.1)}
+.nav-area-menu{position:absolute;z-index:4;top:44px;left:0;right:0;padding:8px;border:1px solid #77718f;border-radius:12px;background:#23214a;box-shadow:var(--shadow-lg)}
+.nav-area-menu a,.nav-area-menu button{display:flex;align-items:center;min-width:44px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#e5e3f4;font-size:13px;text-decoration:none}
+.nav-area-menu a:hover,.nav-area-menu button:hover{background:#49466e}.nav-area-menu button:disabled{color:#c1bed8}
+@media (hover:none){.nav-area-more{visibility:visible}}
+.side-nav::before{content:"";position:absolute;z-index:-1;inset:0 0 auto;height:44px;border-radius:12px;background:#49466e;transform:translateY(var(--nav-y,0px));transition:transform .42s var(--bounce)}
+.side-nav:has([data-module=academico].active){--nav-y:88px}
+.side-nav:has([data-module=carreira].active){--nav-y:136px}
+.side-nav:has([data-module=projetos].active){--nav-y:184px}
+.side-nav:has([data-module=financas].active){--nav-y:232px}
+.side-nav:has([data-module=fitness].active){--nav-y:280px}
+.side-nav:has([data-module=agentes].active){--nav-y:368px}
+.side-nav:has([data-module=configuracoes].active){--nav-y:416px}
+.side-nav :is([data-module=academico],[data-module=carreira],[data-module=projetos],[data-module=financas],[data-module=fitness]) .module-icon{width:9px;height:9px;border-radius:50%;background:#aaa7c0;margin:0 5.5px}
+.side-nav :is([data-module=academico],[data-module=carreira],[data-module=projetos],[data-module=financas],[data-module=fitness]) .module-icon>*{display:none}
+.side-nav [data-module=academico] .module-icon{background:#99b4ff}.side-nav [data-module=carreira] .module-icon{background:#c0a9f6}
+.masthead-lede{display:none}
+.masthead{grid-template-columns:minmax(0,1fr) auto;gap:14px 24px;padding-bottom:8px}
+.masthead h1{font-size:clamp(30px,3.5vw,44px);letter-spacing:-.045em}
+.masthead-tools{align-items:center}
+.masthead-tools #quick-add-button,.masthead-tools #day-progress{display:none}
+.lunar-week-progress{width:168px;display:grid;gap:6px;font-size:12px;align-self:end}
+.lunar-week-progress>div{display:flex;justify-content:space-between;gap:8px;color:var(--ink-3)}
+.lunar-week-progress strong{color:var(--ink);font-weight:600}
+.lunar-week-progress small{font-size:11px;color:var(--ink-3)}
+.lunar-week-progress progress{appearance:none;border:0;border-radius:99px;width:100%;height:6px;background:var(--anil-line);overflow:hidden}
+.lunar-week-progress progress::-webkit-progress-bar{background:var(--anil-line);border-radius:99px}
+.lunar-week-progress progress::-webkit-progress-value{background:var(--anil);border-radius:99px}
+.lunar-week-progress progress::-moz-progress-bar{background:var(--anil);border-radius:99px}
+.lunar-line-head{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px;flex-wrap:wrap}
+.lunar-line-head h2{font-size:14px;color:var(--ink-2)}
+.lunar-filters{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:4px;border-radius:999px;background:var(--sunken);max-width:100%;width:380px}
+.lunar-filters button{position:relative;min-width:0;min-height:44px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:var(--ink-2);font-size:13px;font-weight:600}
+.lunar-filters button[aria-pressed=true]{color:var(--ink)}
+.lunar-filters::before{content:"";position:absolute;z-index:-1;top:4px;left:4px;bottom:4px;width:calc((100% - 8px)/4);border-radius:999px;background:var(--raised);box-shadow:var(--shadow-sm);transform:translateX(var(--filter-x,0%));transition:transform .38s var(--bounce)}
+.lunar-filters:has([data-lunar-area=faculdade][aria-pressed=true]){--filter-x:100%}
+.lunar-filters:has([data-lunar-area=carreira][aria-pressed=true]){--filter-x:200%}
+.lunar-filters:has([data-lunar-area=pessoal][aria-pressed=true]){--filter-x:300%}
+.lunar-filters:not(:has([aria-pressed=true]))::before{opacity:0}
+.day-line,.job-item{background:var(--raised)}
+@supports (backdrop-filter:blur(8px)){
+  .day-line,.job-item{background:var(--glass);backdrop-filter:blur(8px) saturate(1.15);-webkit-backdrop-filter:blur(8px) saturate(1.15)}
+}
+.day-line{margin:0;padding:4px 22px 12px;border:1px solid var(--glass-border);border-radius:20px}
+.day-line-caption:not(.is-coverage-warning){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.lunar-day-row{display:grid;grid-template-columns:58px 8px minmax(0,1fr);align-items:center;gap:14px;min-height:62px;padding:10px 0;border-bottom:1px solid var(--line)}
+.lunar-day-row:last-child{border:0}
+.lunar-day-row time,.lunar-day-row small,.day-line-caption{color:var(--glass-muted);font-size:12px}
+.lunar-day-row i{width:8px;height:8px;border-radius:50%}
+.lunar-day-row strong,.lunar-day-row small{display:block;overflow-wrap:anywhere}
+.lunar-day-row strong{font-size:15px;font-weight:600;line-height:1.35}
+.lunar-day-row.is-done strong{text-decoration:line-through}
+.lunar-day-rows>p{padding:16px 0;color:var(--glass-muted)}
+.lunar-day-rows.is-filtering .lunar-day-row,.lunar-day-row.is-new{animation:lunar-row .42s cubic-bezier(.2,.8,.2,1) both}
+.is-filtering .lunar-day-row:nth-child(2){animation-delay:60ms}.is-filtering .lunar-day-row:nth-child(3){animation-delay:120ms}.is-filtering .lunar-day-row:nth-child(4){animation-delay:180ms}.is-filtering .lunar-day-row:nth-child(5){animation-delay:240ms}.is-filtering .lunar-day-row:nth-child(n+6){animation-delay:300ms}
+.jobs{margin-top:24px;padding-top:0;border:0}
+.jobs{position:relative}
+.jobs-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0;color:var(--ink-2);background:var(--ground);border-radius:12px;padding:0 8px 8px;margin-inline:-8px}
+.jobs-head h2{font-size:15px;min-height:44px;display:flex;align-items:center}
+.jobs-head .jobs-actions{grid-column:2;display:flex;flex-wrap:nowrap;align-items:center;gap:4px}
+.jobs-head #jobs-retry{min-height:44px;padding:0 12px;border-radius:999px;color:var(--anil-ink);white-space:nowrap;font-size:13px;gap:6px}
+.jobs-head #jobs-retry svg{width:16px;height:16px}
+.jobs-head #jobs-reload{color:var(--ink-2)}
+.jobs-head .jobs-search-status,.jobs-head .jobs-gmail-consent{grid-column:1/-1;margin-top:6px}
+.jobs-head .jobs-meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:2px 8px;margin:0;padding:0;color:var(--ink-3);font-size:12px;line-height:1.6;max-width:none;overflow-wrap:anywhere}
+.jobs-meta>span:last-child{flex-basis:100%}
+.jobs-meta .jobs-state{display:inline;color:var(--ink-3);background:transparent;padding:0;min-height:0;font-size:inherit;font-weight:400;white-space:normal}
+.jobs-meta .jobs-state::before{content:"· ";display:inline;background:none;width:auto;height:auto;border-radius:0;transform:none}
+.jobs-meta .jobs-state.attention{color:var(--lume-ink)}
+.jobs>details>summary{position:static;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:12px 0;border-top:1px solid var(--line-strong);color:var(--ink-2);background:transparent}
+.jobs>details>summary>span{min-width:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.jobs-recent-intro{grid-column:1/-1;font-size:13px;line-height:1.6;color:var(--ink-3)}
+.jobs-saved .jobs-meta{margin:0 0 12px}
+.job-item.pending{grid-template-columns:minmax(0,1fr);align-items:start;gap:8px}
+.job-item.pending .job-link{justify-self:start}
+.jobs-list{grid-template-columns:1fr;gap:8px}
+.job-item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:12px 16px;border:1px solid var(--glass-border);transition:transform .18s ease,box-shadow .18s ease}
+.job-company,.job-alerted{font-size:12px;color:var(--glass-muted)}
+.job-alerted{display:none}
+.job-fit,.job-fit.alta{background:transparent;color:var(--glass-link);padding:0;font-size:12px;white-space:nowrap}
+.job-fit.media{color:var(--glass-muted)}
+.job-detail-button{position:absolute;inset:0;width:100%;height:100%;min-height:44px;padding:0;border:0;border-radius:20px;background:transparent;color:var(--glass-link);font-size:0;text-align:left}
+.job-detail-button::after{content:"";position:absolute;inset:0;border-radius:20px}
+.job-item:has(:focus-visible){outline:2px solid var(--anil);outline-offset:3px}
+.job-item.is-selected{background:var(--glass-selected);border-color:var(--anil)}
+.jobs-empty{background:var(--raised);color:var(--ink-2);border-style:solid}
+.jobs-skeleton{display:grid;gap:8px;grid-column:1/-1}
+.jobs-skeleton i{position:relative;display:block;height:94px;border:1px solid var(--glass-border);border-radius:20px;background:var(--glass);overflow:hidden}
+.jobs-skeleton i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent, rgb(255 255 255/.6),transparent);transform:translateX(-100%);animation:lunar-shimmer 1.2s ease-out}
+/* Secondary information stays readable as the page scrolls across the landscape. */
+.workspace,.panel-page,.module-context,.notices:not(:empty),.module-launcher,.source-details,.footer,.lunar-background-control{position:relative;background:var(--ground);border-radius:20px}
+.workspace{padding:24px;margin:8px -24px 0}
+.panel-page{padding:24px}.notices{margin-top:16px}
+.module-launcher,.source-details,.footer{padding:16px}.lunar-background-control{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:12px 16px;color:var(--ink);font-size:13px;font-weight:600}
+.lunar-background-control button{min-width:44px;min-height:44px;padding:0 14px;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--ink-2)}
+.lunar-background-control button[aria-pressed=true]{background:var(--raised);border-color:var(--line-strong);color:var(--ink)}
+.lunar-capture{position:relative;z-index:3;display:grid;gap:6px;padding:12px 10px 8px;border-radius:24px;background:#23214a;color:#fff;margin:24px 0}
+.lunar-capture>label,.lunar-capture>small{padding-inline:10px}.lunar-capture>label{font-size:13px}.lunar-capture>small{font-size:11px;color:#d8d5ed}
+.lunar-capture-row{display:flex;align-items:center;gap:6px;padding:6px;border-radius:20px;background:var(--raised);color:var(--ink)}
+.lunar-capture-row #lunar-capture-input{flex:1;min-width:0;min-height:44px;height:52px;max-height:120px;resize:none;padding:6px 12px;border:0;border-radius:14px;background:var(--raised);font-size:14px;line-height:20px}
+.lunar-capture-row .capture-submit{display:none;flex:none;width:44px;padding:0;border-radius:999px;font-size:24px}
+.lunar-shortcuts{position:absolute;z-index:5;bottom:calc(100% + 8px);right:0;display:grid;width:min(340px,100%);padding:8px;border:1px solid var(--line);border-radius:20px;background:var(--raised);box-shadow:var(--shadow-lg);animation:lunar-menu .18s ease both}
+.lunar-shortcuts button{display:flex;justify-content:space-between;gap:16px;min-height:48px;padding:0 12px;align-items:center;border:0;border-radius:12px;background:transparent;color:var(--anil-ink);font-size:14px;text-align:left}
+.lunar-shortcuts span{color:var(--ink-3);font-size:12px}.lunar-shortcuts button:disabled{color:var(--ink-3)}
+.lunar-shortcuts button:not(:disabled):hover,.lunar-shortcuts button.is-active{background:var(--anil-soft);outline:1px solid var(--anil);outline-offset:-1px}
+.lunar-job-dialog{position:fixed;inset:0 0 0 auto;margin:0;width:min(520px,100%);height:100%;height:100dvh;max-height:none;border-radius:28px 0 0 28px;background:var(--raised)}
+.lunar-job-dialog[open]{animation:lunar-drawer .32s cubic-bezier(.2,.8,.2,1) both}
+.lunar-job-dialog .dialog-scroll{display:block;padding:32px;scrollbar-gutter:stable}
+.lunar-job-dialog .dialog-head{margin-bottom:16px}.lunar-job-dialog .dialog-head p{text-transform:uppercase;letter-spacing:.05em;font-size:12px;font-weight:600}
+.lunar-job-dialog h2{font-size:32px;line-height:1.12;letter-spacing:-.035em;overflow-wrap:anywhere}
+#lunar-job-company{margin-top:16px;color:var(--ink-2);overflow-wrap:anywhere}
+.lunar-job-dialog h3{margin:28px 0 12px;font-size:15px;color:var(--ink-2)}
+.lunar-job-stats{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:24px;color:var(--ink-2);font-size:13px;line-height:1.6}
+.lunar-job-stats>div{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline}
+.lunar-job-stats>div+div::before{content:"·";margin-right:4px;color:var(--ink-3)}
+.lunar-job-stats dt::after{content:":"}.lunar-job-stats dd{margin:0;font-weight:600}
+.lunar-job-check,.lunar-job-question{position:relative;padding-left:36px;white-space:pre-line;overflow-wrap:anywhere}
+.lunar-job-check::before,.lunar-job-question::before{position:absolute;left:0;top:0;display:grid;place-items:center;width:24px;height:24px;background:var(--anil-soft);border-radius:8px;color:var(--anil-ink);font-weight:700}
+.lunar-job-check::before{content:"✓"}.lunar-job-question::before{content:"?"}
+#lunar-job-alert{margin-top:24px}
+.lunar-job-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.lunar-job-actions .button{white-space:normal}
+.route-enter{animation:lunar-route .2s var(--ease)}
+@keyframes lunar-drawer{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+@keyframes lunar-menu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes lunar-row{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lunar-route{from{opacity:0}to{opacity:1}}
+@keyframes lunar-shimmer{to{transform:translateX(100%)}}
+@media (hover:hover){.job-item:hover{transform:translateY(-2px)}}
+@media (min-width:1080px){.lunar-scene{left:var(--sidebar-w)}}
+@media (max-width:1079px){
+  html{scroll-padding-bottom:calc(var(--mobile-bar) + 106px + env(safe-area-inset-bottom))}
+  .main .content{padding-bottom:calc(var(--mobile-bar) + 114px + env(safe-area-inset-bottom))}
+  .mobile-nav{isolation:isolate;background:#23214a;border:0;backdrop-filter:none;height:calc(var(--mobile-bar) + env(safe-area-inset-bottom))}
+  .mobile-nav-item,.mobile-more{position:relative;color:#e1e0f2}
+  .mobile-nav-item.active,.mobile-more.active{color:#fff;background:transparent}
+  .mobile-nav::before{content:"";position:absolute;z-index:-1;top:6px;left:max(8px,env(safe-area-inset-left));height:52px;width:calc((100% - max(8px,env(safe-area-inset-left)) - max(8px,env(safe-area-inset-right)) - 6px)/4);border-radius:12px;background:#49466e;transform:translateX(var(--mobile-x,0%));transition:transform .42s var(--bounce)}
+  .mobile-nav:has([href="#academico"].active){--mobile-x:calc(100% + 2px)}
+  .mobile-nav:has([href="#carreira"].active){--mobile-x:calc(200% + 4px)}
+  .mobile-nav:has(.mobile-more.active){--mobile-x:calc(300% + 6px)}
+  #fab-add{display:none}
+  .lunar-capture{position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:calc(var(--mobile-bar) + env(safe-area-inset-bottom) + 10px);z-index:32;margin:0;padding:4px;border-radius:999px;box-shadow:var(--shadow-sm)}
+  .lunar-capture-row{border-radius:999px;padding:4px;gap:4px}
+  .lunar-capture-row #lunar-capture-input{font-size:16px;padding:10px 8px;line-height:24px;height:44px;max-height:44px;resize:none;overflow-x:hidden;overflow-y:auto;scrollbar-width:none}
+  .lunar-capture-row .capture-submit{display:inline-flex}
+  .lunar-capture>label,.lunar-capture>small{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .lunar-job-dialog{width:100%;border-radius:0}
+  .lunar-job-dialog .dialog-scroll{padding:24px max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+  .lunar-week-progress{width:140px}
+  .lunar-moon{right:13%;bottom:22%;width:76px;height:76px}
+  .workspace{padding:16px;margin:24px -8px 0}
+}
+@media (max-width:639px){
+  .jobs-head #jobs-retry{width:44px;padding:0;justify-content:center}
+  .jobs-retry-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+@media (max-width:639px){
+  .masthead{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px}
+  .masthead h1{font-size:28px;line-height:1.1}.masthead-date{font-size:12px}
+  .masthead-tools{justify-content:flex-end}.lunar-week-progress{width:82px;font-size:11px}
+  .lunar-week-progress small{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .lunar-line-head{margin-top:14px;gap:6px}.lunar-filters{width:100%}
+  .lunar-filters button{padding:0 4px;font-size:12px}
+  .day-line{padding-inline:14px}.lunar-day-row{gap:10px;grid-template-columns:52px 8px minmax(0,1fr);min-height:56px;padding:8px 0}
+  .job-item{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px;gap:6px 8px}
+  .job-top{grid-column:2;grid-row:1}.job-fit{line-height:1.2}
+  .job-item h3{font-size:14px}
+  .jobs-head .jobs-meta{font-size:11px}
+  .lunar-job-dialog h2{font-size:30px}
+  .lunar-job-actions{display:grid}.lunar-job-actions .button{width:100%}
+  .panel-page{padding:16px}.footer{gap:12px}
+}
+@media (prefers-color-scheme:dark){
+  :root{--ground:#151426;--raised:#24233a;--sunken:#1a192d;--ink:#f0effa;--ink-2:#c9c7db;--ink-3:#b5b3ca;--anil:#aaa5ff;--anil-hover:#c2beff;--anil-ink:#c0bbff;--anil-soft:#302d52;--anil-line:#555080;--glass:rgb(36 35 58/.84);--glass-selected:rgb(36 35 58/.96);--glass-border:#65617e;--glass-muted:#d1cde3;--glass-link:#d1cdff;--sky-top:#25213e;--sky-bottom:#37315f;--hill-far:#4b416f;--hill-mid:#34365e;--hill-near:#211e40}
+  .lunar-scene{background:linear-gradient(var(--sky-top),var(--sky-bottom))}.lunar-moon{opacity:.7}
+  .job-fit,.job-fit.alta{color:#d1cdff}
+}
+/* Less transparency keeps the landscape (opaque artwork) but drops glass blur; only higher contrast hides it. */
+@media (prefers-contrast:more){.lunar-scene{display:none}}
+@media (prefers-reduced-transparency:reduce),(prefers-contrast:more){
+  .day-line,.job-item,.job-item.is-selected{background:var(--raised);backdrop-filter:none;-webkit-backdrop-filter:none;border-color:var(--control)}
+  .topbar{background:var(--ground);backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+@media (forced-colors:active){
+  .lunar-scene{display:none}.side-nav::before,.mobile-nav::before,.lunar-filters::before{background:Highlight;border:1px solid HighlightText}
+  .sidebar .nav-item.active,.mobile-nav-item.active,.mobile-more.active{color:HighlightText}
+  .lunar-capture,.job-item,.lunar-job-dialog{border:1px solid CanvasText}
+}
+@media (prefers-reduced-motion:reduce){
+  .side-nav::before,.mobile-nav::before,.lunar-filters::before,.job-item{transition:none}
+  .lunar-job-dialog[open],.lunar-shortcuts,.lunar-day-row.is-new,.lunar-day-rows.is-filtering .lunar-day-row,.route-enter,.jobs-skeleton i::after{animation:none}
+  .job-item:hover{transform:none}
 }

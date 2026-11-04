@@ -17,7 +17,7 @@ As integrações que dependem de contas reais (Google Agenda, Gmail e busca manu
 
 ## Como a demo funciona
 
-A interface é a mesma da versão publicada mais recente do LUAN OS (redesenho "Linha do dia", out/2026). Na versão real, ela conversa com um Worker na Cloudflare, com um banco D1 como fonte da verdade, e rotinas agendadas alimentam agenda, resumos e vagas às 07h e às 19h.
+A interface é a mesma da versão publicada mais recente do LUAN OS (redesenho "Noite de lua", v89, nov/2026). Na versão real, ela conversa com um Worker na Cloudflare, com um banco D1 como fonte da verdade, e rotinas agendadas alimentam agenda, resumos e vagas às 07h e às 19h.
 
 Aqui, o arquivo `demo-api.js` responde no próprio navegador às mesmas rotas (`/api/state`, `/api/snapshots/*`, `/api/health` e as rotas das integrações), com:
 

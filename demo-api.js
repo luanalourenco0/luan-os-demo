@@ -219,7 +219,11 @@
       return json(200, {status: 'ok', storage: 'ok', checked_at: new Date().toISOString(), snapshots: {agenda: source, updates: source, jobs: source}});
     }
     if (path === '/api/gmail/status' && method === 'GET') return json(200, GMAIL_OFF);
-    if (path === '/api/jobs/search/status' && method === 'GET') return json(200, {gmail: GMAIL_OFF, preferences_configured: false, busy: false, operation: null});
+    if (path === '/api/jobs/search/status' && method === 'GET') {
+      // A rotina fictícia "consultou" no mesmo horário dos exemplos e não trouxe alertas novos.
+      const stamp = captureStamp(), source = newItems => ({status: 'success', last_attempt_at: stamp, last_success_at: stamp, new_items: newItems});
+      return json(200, {gmail: GMAIL_OFF, preferences_configured: false, busy: false, operation: null, routine: {gmail: source(null), jobs: source(0)}});
+    }
     if (path === '/api/calendar-sync' && method === 'GET') return json(200, CALENDAR_OFF);
     if (path === '/api/gmail/oauth/start' || path === '/api/jobs/search' || path.startsWith('/api/calendar-sync/')) {
       toast('Na demonstração, as integrações com Google Agenda e Gmail ficam desligadas.');

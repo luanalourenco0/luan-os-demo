@@ -29,10 +29,19 @@
     }return data;
   }
   function searchStatus(data,id){
-    fields(data,['gmail','preferences_configured','busy','operation']);gmail(data.gmail);valid(typeof data.preferences_configured==='boolean'&&typeof data.busy==='boolean');
+    fields(data,['gmail','preferences_configured','busy','operation'],['routine']);gmail(data.gmail);valid(typeof data.preferences_configured==='boolean'&&typeof data.busy==='boolean');
     if(data.operation!==null){const op=data.operation;fields(op,['operation_id','status','started_at','lease_until','finished_at','summary','error']);
-      valid(op.operation_id===id&&['running','completed','failed','uncertain'].includes(op.status)&&V.timestamp(op.started_at)&&(op.lease_until===null||V.timestamp(op.lease_until))&&(op.finished_at===null||V.timestamp(op.finished_at))&&(op.error===null||typeof op.error==='string'&&/^[a-z0-9_]{1,100}$/.test(op.error)));
+      valid(operationId(op.operation_id)&&(id===undefined||op.operation_id===id)&&['running','completed','failed','uncertain'].includes(op.status)&&V.timestamp(op.started_at)&&(op.lease_until===null||V.timestamp(op.lease_until))&&(op.finished_at===null||V.timestamp(op.finished_at))&&(op.error===null||typeof op.error==='string'&&/^[a-z0-9_]{1,100}$/.test(op.error)));
       if(op.summary!==null){fields(op.summary,['status','checked_at','snapshot_revision','counts','warnings','source_complete','official_complete']);summary(op.summary);}
+    }
+    if(data.routine!==undefined&&data.routine!==null){
+      fields(data.routine,['gmail','jobs']);
+      for(const source of Object.values(data.routine)){
+        fields(source,['status','last_attempt_at','last_success_at','new_items']);
+        valid(['unknown','success','failed'].includes(source.status)&&[source.last_attempt_at,source.last_success_at].every(value=>value===null||V.timestamp(value))&&(source.new_items===null||integer(source.new_items)));
+        valid(source.status==='unknown'||V.timestamp(source.last_attempt_at));
+        valid(source.status!=='success'||V.timestamp(source.last_success_at));
+      }
     }return data;
   }
   function authorization(data){
@@ -61,7 +70,7 @@
       finally{clearTimeout(timer);}
     }
     async function searchJobs(input){fields(input,['operation_id']);valid(operationId(input.operation_id));return jobRequest('/api/jobs/search',{body:input,validate:data=>searchResult(data,input.operation_id),timeout:jobSearchTimeoutMs,uncertain:true});}
-    async function jobSearchStatus(id){valid(operationId(id));return jobRequest('/api/jobs/search/status?operation_id='+encodeURIComponent(id),{validate:data=>searchStatus(data,id)});}
+    async function jobSearchStatus(id){valid(id===undefined||operationId(id));return jobRequest('/api/jobs/search/status'+(id===undefined?'':'?operation_id='+encodeURIComponent(id)),{validate:data=>searchStatus(data,id)});}
     async function health(){
       const controller=new AbortController();let timer;
       try{
